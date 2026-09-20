@@ -1,0 +1,13 @@
+[repository]
+name = "hyprtrizone"
+authors = ["nyrda"]
+# Hyprland commit to matching plugin commit. This repository targets Hyprland 0.56.2.
+commit_pins = []
+
+[hyprtrizone]
+description = "Three-zone layout with scrolling side stacks and window pairing"
+authors = ["nyrda"]
+output = "hyprtrizoneLayout.so"
+build = [
+    "make all"
+]
