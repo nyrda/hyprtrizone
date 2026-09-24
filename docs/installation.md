@@ -1,23 +1,30 @@
 # Installation
 
-Hyprtrizone targets Hyprland 0.56.2 and uses Lua configuration. A plugin must be
-compiled against the same compositor build that loads it. Rebuild after changing
-Hyprland.
+Hyprtrizone targets **Hyprland 0.56.2** with a Lua configuration. A Hyprland
+plugin only loads into the exact compositor build it was compiled against, so
+rebuild the plugin whenever Hyprland changes.
 
-## NixOS
+| Method | Use it when |
+| --- | --- |
+| [NixOS module](#nixos-module) | You run NixOS. The flake pins Hyprland and the plugin together. |
+| [Nix packages](#nix-packages-without-the-module) | You manage the Hyprland package yourself on Nix. |
+| [Manual build](#manual-build) | You want a local `.so`, for development or another distribution. |
+| [hyprpm](#hyprpm) | Your distribution provides Hyprland 0.56.2 and its headers. |
 
-The flake provides the plugin, its matching Hyprland and portal packages, and a
-NixOS module. Its outputs target `x86_64-linux`.
+## NixOS module
+
+The flake provides the plugin, the matching Hyprland and portal packages, and a
+NixOS module for `x86_64-linux`.
 
 ```nix
+# flake.nix. SSH access is required for this private repository.
 inputs.hyprtrizone.url = "git+ssh://git@github.com/nyrda/hyprtrizone";
 ```
 
-Keep this input's nixpkgs pin. Adding `inputs.nixpkgs.follows = "nixpkgs"` inside
-the hyprtrizone input would replace the tested compositor with your system's
-version.
+Do not add `inputs.nixpkgs.follows = "nixpkgs"` to this input. It would build
+the plugin against your system's Hyprland instead of the tested one.
 
-Pass `inputs` through `nixosSystem.specialArgs`, then enable the module:
+Pass `inputs` through `specialArgs` of `nixosSystem`, then enable the module:
 
 ```nix
 { inputs, ... }: {
@@ -26,19 +33,26 @@ Pass `inputs` through `nixosSystem.specialArgs`, then enable the module:
 }
 ```
 
-Load the generated file before plugin settings in `hyprland.lua`:
+The module enables `programs.hyprland` and sets its `package` and
+`portalPackage` to the pinned builds, all with `mkDefault`. It also writes
+`/etc/xdg/hypr/hyprtrizone_plugin.lua`, which loads the plugin. Load it at the
+top of `hyprland.lua`, before any plugin settings:
 
 ```lua
 dofile("/etc/xdg/hypr/hyprtrizone_plugin.lua")
 hl.config({ general = { layout = "hyprtrizone" } })
 ```
 
-The module sets `programs.hyprland.package` and `portalPackage` with `mkDefault`.
-If your configuration already sets those options, use the packages below so the
-compositor and plugin match. Updating the hyprtrizone flake input updates the
-pinned pair together.
+If your configuration sets `programs.hyprland.package` itself, use the flake's
+`hyprland` and `xdg-desktop-portal-hyprland` packages there. Updating the
+hyprtrizone input updates the compositor and the plugin together.
 
-Without the module:
+| Module option | Default | Description |
+| --- | --- | --- |
+| `programs.hyprtrizone.enable` | `false` | Install the plugin, its loader, and the matching Hyprland. |
+| `programs.hyprtrizone.package` | the flake's plugin | Plugin package. It must be built against `programs.hyprland.package`. |
+
+## Nix packages without the module
 
 ```nix
 let
@@ -49,30 +63,35 @@ in {
     package = tz.hyprland;
     portalPackage = tz.xdg-desktop-portal-hyprland;
   };
-  # Load "${tz.hyprtrizone}/lib/hyprtrizoneLayout.so" in your generated Lua config.
+  # In your Lua config: hl.plugin.load("${tz.hyprtrizone}/lib/hyprtrizoneLayout.so")
 }
 ```
 
-To build against your own package set, use
-`pkgs.callPackage "${inputs.hyprtrizone}/nix/package.nix" { }`. That compositor
-must still provide the API this revision targets. The flake also exports an
-overlay that adds `pkgs.hyprtrizone` using the receiving package set.
+To build the plugin against your own package set instead, use
+`pkgs.callPackage "${inputs.hyprtrizone}/nix/package.nix" { }` or the flake's
+`overlays.default`, which adds `pkgs.hyprtrizone`. Your Hyprland must then
+provide the same plugin API as 0.56.2.
 
-## Local build
+## Manual build
 
 ```sh
 ./dev.sh build
 ```
 
-The result is `hyprtrizoneLayout.so` in the repository root. The helper uses
-installed development packages when available, a matching Hyprland checkout's
-Nix shell when its development output is already built, or the pinned nixpkgs
-shell as a fallback. Set `HYPRLAND_ROOT` to select a checkout; the default is
-`../Hyprland`.
+This produces `hyprtrizoneLayout.so` in the repository root. `dev.sh` finds the
+build dependencies in this order:
 
-For a system build, install a C++23 compiler, Make, pkg-config, the matching
-Hyprland development files and their dependencies, and Lua 5.5 development
-files. `LUA_PKG` overrides the detected Lua pkg-config name.
+1. Development packages installed on the system, through `pkg-config`.
+2. The Nix dev shell of a Hyprland checkout at `HYPRLAND_ROOT` (default
+   `../Hyprland`), if its `hyprland.dev` output is already built.
+3. The Hyprland from the nixpkgs revision pinned in `flake.lock`.
+
+Without Nix, install a C++23 compiler, Make, pkg-config, the Hyprland 0.56.2
+development files with their dependencies, and Lua 5.5 development files, then
+run `make`. Set `LUA_PKG` if your distribution uses an unusual pkg-config name
+for Lua.
+
+Load the result by absolute path:
 
 ```lua
 hl.plugin.load("/absolute/path/to/hyprtrizoneLayout.so")
@@ -81,7 +100,9 @@ hl.config({ general = { layout = "hyprtrizone" } })
 
 ## hyprpm
 
-With the system build dependencies installed and repository access configured:
+hyprpm builds plugins against a system-managed Hyprland. For a Nix-managed
+Hyprland, use the module or packages above. With the build dependencies from
+the manual build installed and SSH access to the repository:
 
 ```sh
 hyprpm update
@@ -89,27 +110,27 @@ hyprpm add git@github.com:nyrda/hyprtrizone.git
 hyprpm enable hyprtrizone
 ```
 
-Use hyprpm with a system-managed Hyprland. For Nix-managed Hyprland, use the
-package or module above.
+hyprpm loads plugins after Hyprland starts. Select the layout once the plugin
+has loaded:
 
 ```lua
 hl.on("hyprland.start", function()
-    hl.exec_cmd("hyprpm reload -n")
+    hl.exec_cmd([[hyprpm reload -n && hyprctl eval 'hl.config({ general = { layout = "hyprtrizone" } })']])
 end)
-hl.config({ general = { layout = "hyprtrizone" } })
 ```
 
-Run `hyprpm update` after a Hyprland update. This repository has no compatibility
-pins for older compositor releases.
+Put plugin settings in the same `hyprctl eval` call, or set them from a
+separate file loaded after the plugin. Run `hyprpm update` after every Hyprland
+update. The repository has no compatibility pins for older Hyprland releases.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
-| Plugin fails to load | Rebuild against the running Hyprland; inspect `hyprctl plugin list`. |
-| Layout is inactive | Set `general.layout = "hyprtrizone"`; inspect `hyprctl -j activeworkspace` and its `tiledLayout` field. |
-| Configuration fails | Inspect `hyprctl configerrors`. Load the plugin before its settings. |
-| No overflow indicators | Set `indicator_show_zero = true` to display zero counts. |
-| Scrolling does nothing | Send `hyprctl dispatch 'hl.dsp.layout("setscrolling on")'`; the side also needs enough rows to overflow. |
-| Windows do not pair | Enable pairing on that side and give both windows a matching tag. Title rules stop matching if a terminal changes its title. |
-| CLI commands fail under Lua | Use `hyprctl eval '<lua>'` for configuration and `hyprctl dispatch '<lua dispatcher>'` for actions. |
+| The plugin fails to load | Rebuild against the running Hyprland. `hyprctl plugin list` shows loaded plugins. |
+| The layout is not active | Set `general.layout = "hyprtrizone"`. `hyprctl -j activeworkspace` shows the active layout in `tiledLayout`. |
+| Configuration errors | Run `hyprctl configerrors`. Load the plugin before its settings. |
+| No overflow badges | Badges only appear for hidden windows. Set `indicator_show_zero = true` to always show them. |
+| Scrolling does nothing | A side window or the center needs focus, and the stack needs more rows than `side_visible_windows`. Check `hyprctl dispatch 'hl.dsp.layout("setscrolling on")'`. |
+| Windows do not pair | Enable pairing on that side and give both windows a tag from `pairing_tags`. Title-based window rules stop matching when a program changes its title. |
+| Old `hyprctl` forms fail | Under a Lua config, use `hyprctl eval '<lua>'` for settings and `hyprctl dispatch '<lua dispatcher>'` for actions. |

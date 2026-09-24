@@ -11,11 +11,13 @@ Use `./dev.sh` for routine work:
 ./dev.sh make all
 ./dev.sh vm-test
 ./dev.sh vm-demo-screenshot
+./dev.sh vm-demo-video
 ```
 
 `./dev.sh reload` changes the running desktop session. The VM commands provide
 isolated validation. `vm-demo` opens the graphical demo and `vm-test-interactive`
-opens the test driver.
+opens the test driver. `vm-demo-video` records the 30:9 feature tour into
+`docs/demo.mp4`; rerun it when a change affects what the tour shows.
 
 `HYPRLAND_ROOT` defaults to `../Hyprland`. Use a matching checkout for API
 reference. The helper uses its Nix shell only if `hyprland.dev` is already built;
@@ -31,7 +33,8 @@ otherwise it falls back to the nixpkgs pin in `flake.lock`.
 - `nix/package.nix`: plugin derivation for the flake and downstream `callPackage`.
 - `nix/module.nix`: matching Hyprland package and generated Lua loader.
 - `nix/hyprtrizone-vm-test.nix`: headless layout integration test.
-- `nix/hyprtrizone-vm-demo.nix`: demo VM and Quickshell screenshot test.
+- `nix/hyprtrizone-vm-demo.nix`: demo VM, Quickshell screenshot test, and video entry point.
+- `nix/demo-video/`: scripted video tour, caption overlay, and recording.
 - `docs/`: configuration, behavior, installation, and development references.
 
 ## Layout invariants
@@ -46,6 +49,7 @@ otherwise it falls back to the nixpkgs pin in `flake.lock`.
 - Runtime scrolling and pairing overrides are global; stored scroll offsets are per workspace.
 - `left_header_height` and `right_header_height` reserve top space only in the side columns. Keep these public names.
 - Keep Quickshell in the demo VM and as a standalone example. Its fixed geometry matches the Lua demo config.
+- The video tour asserts the layout after each step. Keep captions in `nix/demo-video/tour.py` true to the behavior shown.
 
 Public identifiers are `hyprtrizone` for the plugin and layout,
 `plugin:hyprtrizone:*` for options, and `hyprtrizoneLayout.so` for the artifact.

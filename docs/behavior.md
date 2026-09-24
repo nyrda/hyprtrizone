@@ -1,64 +1,109 @@
 # Window behavior
 
-## New windows
+Each workspace is split into three columns: a center column for the main
+windows and a scrolling stack on either side. A side stack is a list of rows.
+A row holds one window, or two when they are paired.
 
-A returning window first restores its cached placement. A restore on the same
-workspace also restores its order and pairing state. Workspace-follow moves keep
-their zone and insert at the front of that zone on the destination workspace.
+- [Placing new windows](#placing-new-windows)
+- [Pairing](#pairing)
+- [Scrolling](#scrolling)
+- [Drag and drop](#drag-and-drop)
+- [Keyboard movement](#keyboard-movement)
+- [Resizing](#resizing)
+- [Closing windows and focus](#closing-windows-and-focus)
+- [Workspaces](#workspaces)
+- [Fullscreen and special workspaces](#fullscreen-and-special-workspaces)
+- [Known limitations](#known-limitations)
 
-Without restored state, the first window occupies center. A new window also
-fills center if there is no master. Otherwise its zone tags take precedence over
-the default placement rules. When a center-tagged window arrives, untagged center
-windows move to their preferred side or the configured `side_bias`. Multiple
-center-tagged windows share the center column vertically.
+## Placing new windows
 
-For a side window, insertion follows the focused row in that side, or the row
-under the pointer. Without a side tag, the focused side window takes priority
-over the pointer. If neither supplies a side, placement uses `side_bias`.
+A new window is placed by the first rule that applies:
 
-A window inserted after a complete pair starts a new row. An eligible window
-inserted after an eligible single window can join its row. New side windows are
-brought into view.
+1. **The center is empty.** The window takes the center, whatever its tags.
+2. **It has a center tag.** It joins the center. Untagged center windows move
+   to their tagged side, or to `side_bias`. Several center-tagged windows share
+   the center column, stacked vertically.
+3. **It has a side tag.** It goes to that side.
+4. **Anything else** goes to the side of the focused window. With the center
+   focused, the side under the pointer is used, and otherwise `side_bias`.
+
+On its side, the window opens below the focused row, or below the row under the
+pointer. If neither is on that side, it opens at the end of the stack. The
+stack scrolls just far enough to show the new window.
+
+Windows that return to a workspace, for example after a layout switch or
+through workspace following, keep their previous zone instead. A window
+returning to the same workspace also gets back its row and pair.
 
 ## Pairing
 
-Two eligible windows can share a side row, each taking half its width. Pairing
-must be enabled for that side. With `pairing_tag_only = true`, both windows must
-carry a tag listed in `pairing_tags`.
+Two windows can share a side row, each taking half its width. Pairing has to be
+enabled for the side with `pairing_left` or `pairing_right`. With
+`pairing_tag_only = true`, the default, both windows need a tag from
+`pairing_tags`.
 
-Pairing only happens at the insertion point. Existing rows keep their members
-and order. A closing or departing member leaves its partner in its own row.
-Hyprland applies the normal window gaps to both members.
+A pair only forms where a window is inserted. A new eligible window pairs with
+the row it opens below if that row holds a single eligible window. Below a full
+pair, it starts a new row. Other rows never move to make room.
 
-A window moving to another zone leaves its pair, joins the end of the destination
-stack, and can pair there under the same insertion rules. `swapwithmaster`
-exchanges windows in place, including the side window's position within a pair.
+When a pair member closes or leaves the side, its partner stays behind as a
+single row. A window that moves to the other side joins the end of that stack
+and can pair there under the same rule.
+
+Pairs are checked on every layout pass. If pairing is turned off or a tag is
+removed, the pair shows as two rows but is still remembered. Turning pairing
+back on restores it.
+
+## Scrolling
+
+A side stack shows `side_visible_windows` rows. Further rows overflow and the
+stack scrolls. The `scroll` command scrolls the focused side, and the
+[demo config](../examples/hyprtrizone-demo.lua) binds it to Super and the mouse
+wheel. With the center focused, the `side_bias` stack scrolls.
+
+Moving focus does not scroll. `windowfocus` scrolls the focused window into
+view. A window moved into a side, by keyboard, zone command, or drop into an
+empty part of the column, scrolls its stack to the end.
+
+Overflow badges count the windows completely scrolled out of view above and
+below. With scrolling disabled, the rows of a stack shrink to fit the column.
 
 ## Drag and drop
 
-Hyprland temporarily floats a tiled window during a drag. On release, placement
-depends on the target under the pointer.
+Dragging with the `hl.dsp.window.drag()` mouse bind lifts a tiled window out of
+the layout until it is dropped. The window under the pointer decides the
+result:
 
-| Drop target | Result |
+| Dropped onto | Result |
 | --- | --- |
-| Empty zone | Place in that column. An occupied center falls back to `side_bias`. |
-| Center window | Exchange the dragged window with that window. The former center takes the dragged window's side slot when available. |
-| Member of a full pair | Exchange the source and target, keeping the other pair members in place. |
-| Eligible single side window | Pair them. The pointer's half of the target determines the dragged window's position. |
-| Single side window that cannot pair | Insert at that position and move the target down. If the dragged window came from a pair, exchange slots to preserve that row. |
+| A center window, from a side | The two exchange places. The center window takes the dragged window's old slot, including its place in a pair. |
+| A center window, from the center | The dragged window takes that position and the target moves down. |
+| A single side window, both eligible to pair | They pair. The half of the target under the pointer decides which side the dragged window takes. |
+| A single side window that cannot pair | The dragged window takes that row and the target moves down. If the dragged window came from a pair, the two exchange slots instead so that pair stays whole. |
+| A member of a pair | The dragged window and the target exchange slots. The other pair member stays. |
+| A side window, dragging the only center window | They exchange places, so the target becomes the center window. |
+| An empty center | The window takes the center. |
+| An empty part of a side column | The window becomes a single row at the end of that stack. |
 
-Dropping a pair member onto its partner reorders that pair. A window arriving
-from another workspace has no source slot in the destination. Where an exchange
-needs that slot, the target becomes a separate row below instead.
+Dropping a pair member onto its partner reorders the pair. A window dragged in
+from another workspace has no old slot to exchange into, so the target becomes
+its own row below instead.
+
+The `dropon` command applies the same rules without a mouse; see
+[runtime commands](configuration.md#zones-and-the-center).
 
 ## Keyboard movement
 
-Hyprland's directional window movement moves left and right through the columns.
-Within a pair, moving toward the partner exchanges the members first. Moving
-away from the partner leaves the zone.
+Hyprland's directional move, `hl.dsp.window.move`, is handled by the layout.
 
-Up and down exchange the focused window with the neighboring row in the same
-zone. When both rows are pairs, the window keeps its column.
+- **Left and right** move a window between columns. A window entering a side
+  joins the end of that stack. Within a pair, moving toward the partner
+  exchanges the two; moving away leaves the side.
+- **Up and down** exchange the window with the neighboring row in its column.
+  Between two pairs, the window keeps its left or right half.
+
+The layout does not move a window past the outer columns or the ends of a
+stack.
 
 ```lua
 for _, direction in ipairs({ "left", "right", "up", "down" }) do
@@ -70,30 +115,56 @@ hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
 ## Resizing
 
-Horizontal resizing changes the center width; both side columns resize
-symmetrically. The center width stays between 10 and 90 percent of the monitor
-width used by the resize calculation.
+Resizing horizontally changes the center width. Both side columns change by the
+same amount. The center stays between 10 and 90 percent of the work area. The
+new width belongs to that workspace until its layout is recreated; see
+[`master_factor`](configuration.md#columns).
 
-Vertical resizing changes a center window's relative height when several center
-windows exist. In a side stack it changes the row height, including both members
-of a pair. These heights affect the scrollable content size.
+Resizing vertically changes relative heights:
+
+- **In the center**, with more than one center window. The last window takes
+  the remaining height.
+- **In a side stack**, where it moves height between rows. Both members of a
+  pair resize together, and the total height of the stack stays the same.
+
+Heights belong to positions in the column rather than to windows, so a window
+moved elsewhere leaves its height behind.
 
 ## Closing windows and focus
 
-If removing a center window leaves center empty, a side window is promoted.
-The configured `side_bias` is preferred, then the opposite side.
+When the last center window closes, the top window of the `side_bias` stack
+takes its place, or the top window of the other side. Windows tagged for
+workspace following are not promoted.
 
-After closing a window, the layout suggests its pair partner first, then the next
-window in the same zone, then the previous one. It falls back to any remaining
-window if those candidates are gone.
+After a window closes, focus goes to its pair partner, then to the next window
+in its column, then to the previous one, and finally to any remaining window.
 
-## Workspace state
+## Workspaces
 
-Each workspace owns its scroll offsets and layout nodes. Window caches preserve
-placement during layout changes. Runtime scrolling and pairing overrides apply
-to all instances.
+Hyprland creates a separate layout for each workspace. Rows, scroll offsets,
+and center width are per workspace. The runtime scrolling and pairing overrides
+apply everywhere.
 
-A window tagged for workspace following moves to a newly active numeric workspace
-on its current monitor. It retains its zone and goes to the front of that zone.
-Named and special destination workspaces, floating windows, and pinned windows
-do not trigger this behavior.
+Windows tagged with `follow_workspace_tags` follow you. When a workspace with a
+positive number becomes active, tagged tiled windows from the other hyprtrizone
+workspaces on that monitor move to it. Each keeps its zone and goes to the top
+of its column. Floating, pinned, hidden, and unmapped windows stay behind, and
+named workspaces do not pull windows.
+
+## Fullscreen and special workspaces
+
+While a fullscreen window covers the workspace, Hyprland places it and the
+layout leaves it alone. Closing, dragging, floating, or moving the window to
+another workspace ends its fullscreen state.
+
+On a special workspace, every window is scaled around its own center by
+`special_scale_factor`. Overflow badges are drawn for the monitor's active and
+special workspaces.
+
+## Known limitations
+
+- The center can end up empty. Moving the only center window out with a
+  keyboard move, `movetozone`, or a drop into an empty side column does not
+  promote a replacement. `removemaster` refuses to do this.
+- A window that restores its side zone, for example through workspace
+  following, keeps that zone even if the destination has no center window.

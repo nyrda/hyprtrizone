@@ -2,6 +2,7 @@
 #
 #   nix-build nix/hyprtrizone-vm-demo.nix -A vm && ./result/bin/run-hyprtrizone-demo-vm   (./dev.sh vm-demo)
 #   nix-build nix/hyprtrizone-vm-demo.nix -A screenshot                                   (./dev.sh vm-demo-screenshot)
+#   nix-build nix/hyprtrizone-vm-demo.nix -A video                                        (./dev.sh vm-demo-video)
 #
 # In the VM: SUPER+Return terminal, SUPER+Q close, SUPER+arrows focus, SUPER+SHIFT+arrows move,
 # SUPER+left mouse drag (drop onto windows to pair/exchange), SUPER+SHIFT+F7 re-populate, SUPER+M exit.
@@ -22,57 +23,75 @@ let
     chmod +x $out/*.sh
   '';
 
-  hyprlandConfig = pkgs.writeText "hyprland.lua" ''
-    hl.plugin.load("${plugin}/lib/hyprtrizoneLayout.so")
+  # The demo session. The video reuses it at a wider resolution, with animations and its own window setup.
+  mkHyprlandConfig =
+    {
+      width,
+      height,
+      populate ? true,
+      extraConfig ? "",
+    }:
+    pkgs.writeText "hyprland.lua" ''
+      hl.plugin.load("${plugin}/lib/hyprtrizoneLayout.so")
 
-    hl.monitor({ output = "", mode = "2560x1080@60", position = "0x0", scale = "1" })
+      hl.monitor({ output = "", mode = "${toString width}x${toString height}@60", position = "0x0", scale = "1" })
 
-    hl.config({
-      general = {
-        gaps_in = 4,
-        gaps_out = 0,
-        border_size = 3,
-        col = {
-          active_border = { colors = { "rgba(aaaaeeaa)", "rgba(eeeeaaff)", "rgba(aaaaeeaa)" }, angle = 45 },
-          inactive_border = "rgba(595959aa)",
+      hl.config({
+        general = {
+          gaps_in = 4,
+          gaps_out = 0,
+          border_size = 3,
+          col = {
+            active_border = { colors = { "rgba(aaaaeeaa)", "rgba(eeeeaaff)", "rgba(aaaaeeaa)" }, angle = 45 },
+            inactive_border = "rgba(595959aa)",
+          },
         },
-      },
-      decoration = { rounding = 10, shadow = { enabled = false }, blur = { enabled = false } },
-      -- Software rendering: keep it snappy.
-      animations = { enabled = false },
-      misc = {
-        disable_hyprland_logo = true,
-        -- This disposable VM starts Hyprland directly for test-driver control.
-        disable_watchdog_warning = true,
-        force_default_wallpaper = 0,
-        background_color = "rgba(1b1e28ff)",
-      },
-      input = { kb_layout = "us", follow_mouse = 1 },
-    })
+        decoration = { rounding = 10, shadow = { enabled = false }, blur = { enabled = false } },
+        -- Software rendering: keep it snappy.
+        animations = { enabled = false },
+        misc = {
+          disable_hyprland_logo = true,
+          disable_splash_rendering = true,
+          -- This disposable VM starts Hyprland directly for test-driver control.
+          disable_watchdog_warning = true,
+          force_default_wallpaper = 0,
+          background_color = "rgba(1b1e28ff)",
+        },
+        input = { kb_layout = "us", follow_mouse = 1 },
+      })
 
-    dofile("${demoDir}/hyprtrizone-demo.lua")
+      dofile("${demoDir}/hyprtrizone-demo.lua")
 
-    local main = "SUPER"
-    local shift = "SUPER + SHIFT"
-    hl.bind(main .. " + RETURN", hl.dsp.exec_cmd("foot"))
-    hl.bind(main .. " + Q", hl.dsp.window.close())
-    hl.bind(main .. " + M", hl.dsp.exit())
-    for _, dir in ipairs({ "left", "right", "up", "down" }) do
-      hl.bind(main .. " + " .. dir, hl.dsp.focus({ direction = dir }))
-      hl.bind(shift .. " + " .. dir, hl.dsp.window.move({ direction = dir }))
-    end
-    for i = 1, 3 do
-      hl.bind(main .. " + " .. i, hl.dsp.focus({ workspace = i }))
-    end
-    hl.bind(main .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
-    hl.bind(main .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+      local main = "SUPER"
+      local shift = "SUPER + SHIFT"
+      hl.bind(main .. " + RETURN", hl.dsp.exec_cmd("foot"))
+      hl.bind(main .. " + Q", hl.dsp.window.close())
+      hl.bind(main .. " + M", hl.dsp.exit())
+      for _, dir in ipairs({ "left", "right", "up", "down" }) do
+        hl.bind(main .. " + " .. dir, hl.dsp.focus({ direction = dir }))
+        hl.bind(shift .. " + " .. dir, hl.dsp.window.move({ direction = dir }))
+      end
+      for i = 1, 3 do
+        hl.bind(main .. " + " .. i, hl.dsp.focus({ workspace = i }))
+      end
+      hl.bind(main .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
+      hl.bind(main .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
-    hl.on("hyprland.start", function()
-      hl.exec_cmd("${demoDir}/populate-demo.sh")
-    end)
-  '';
+      ${lib.optionalString populate ''
+        hl.on("hyprland.start", function()
+          hl.exec_cmd("${demoDir}/populate-demo.sh")
+        end)
+      ''}
+      ${extraConfig}
+    '';
 
-  demoModule =
+  mkDemoModule =
+    {
+      hyprlandConfig,
+      width,
+      height,
+      cores ? 4,
+    }:
     { pkgs, ... }:
     {
       networking.hostName = "hyprtrizone-demo";
@@ -92,6 +111,7 @@ let
       services.speechd.enable = false;
 
       environment.systemPackages = [
+        pkgs.adwaita-icon-theme
         pkgs.foot
         pkgs.quickshell
         pkgs.jq
@@ -101,6 +121,12 @@ let
         pkgs.noto-fonts
         pkgs.noto-fonts-color-emoji
       ];
+
+      # Without a theme the pointer falls back to a spinner-like default.
+      environment.variables = {
+        XCURSOR_THEME = "Adwaita";
+        XCURSOR_SIZE = "24";
+      };
 
       # Calm terminals: padded, themed, and a short prompt instead of user@host.
       environment.etc."xdg/foot/foot.ini".text = ''
@@ -123,19 +149,27 @@ let
         fi
       '';
 
+      # Software rendering on a plain virtio-gpu is enough for the demo.
+      virtualisation = {
+        inherit cores;
+        memorySize = 4096;
+        resolution = {
+          x = width;
+          y = height;
+        };
+        qemu.options = [ "-vga none -device virtio-gpu-pci" ];
+      };
+
       system.stateVersion = "24.11";
     };
 
-  # Software rendering on a plain virtio-gpu is enough; 2560x1080 leaves room for all three zones.
-  vmSettings = {
-    virtualisation = {
-      cores = 4;
-      memorySize = 4096;
-      resolution = {
-        x = 2560;
-        y = 1080;
-      };
-      qemu.options = [ "-vga none -device virtio-gpu-pci" ];
+  # 2560x1080 leaves room for all three zones.
+  demoModule = mkDemoModule {
+    width = 2560;
+    height = 1080;
+    hyprlandConfig = mkHyprlandConfig {
+      width = 2560;
+      height = 1080;
     };
   };
 in
@@ -145,7 +179,6 @@ in
       system = pkgs.stdenv.hostPlatform.system;
       modules = [
         demoModule
-        vmSettings
         (pkgs.path + "/nixos/modules/virtualisation/qemu-vm.nix")
       ];
     }).config.system.build.vm;
@@ -153,12 +186,7 @@ in
   # Boots the same session unattended and captures the populated desktop.
   screenshot = pkgs.testers.runNixOSTest {
     name = "hyprtrizone-demo-screenshot";
-    nodes.machine = {
-      imports = [
-        demoModule
-        vmSettings
-      ];
-    };
+    nodes.machine = demoModule;
     testScript = ''
       import json
 
@@ -211,5 +239,16 @@ in
           assert query("monitors")[0]["reserved"][1] == 34
           machine.screenshot("quickshell-top")
     '';
+  };
+
+  # Records the feature tour on a 30:9 monitor; see nix/demo-video/.
+  video = import ./demo-video {
+    inherit
+      pkgs
+      lib
+      demoDir
+      mkDemoModule
+      mkHyprlandConfig
+      ;
   };
 }

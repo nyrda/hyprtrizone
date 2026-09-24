@@ -1,7 +1,8 @@
 # Configuration
 
-Load the plugin before setting `plugin.hyprtrizone` in `hl.config`. The
-[demo config](../examples/hyprtrizone-demo.lua) provides a working example.
+Hyprtrizone is configured through `plugin.hyprtrizone` in `hl.config`. Load the
+plugin before these settings; otherwise Hyprland rejects the unknown options.
+The [demo config](../examples/hyprtrizone-demo.lua) uses most of them.
 
 ```lua
 hl.config({
@@ -16,31 +17,55 @@ hl.config({
 })
 ```
 
-All defaults below come from `src/pluginConfig.cpp`. Option names use the
-`plugin:hyprtrizone:` prefix when queried through Hyprland.
+Defaults are registered in `src/pluginConfig.cpp`. Through `hyprctl`, options
+are named `plugin:hyprtrizone:<option>`.
 
-## Columns and scrolling
+- [Columns](#columns)
+- [Scrolling](#scrolling)
+- [Tags](#tags)
+- [Overflow indicators](#overflow-indicators)
+- [Runtime commands](#runtime-commands)
+
+## Columns
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `master_factor` | float | `0.5` | Center width as a fraction of the work area, clamped to `0.1` through `0.9`. The side columns share the remaining width equally. |
-| `special_scale_factor` | float | `0.8` | Window scale on special workspaces. |
-| `side_bias` | string | `"right"` | Default side for placement and scrolling with center focus. Accepts `left`, `l`, `0`, `right`, `r`, or `1`. |
-| `scrolling_enabled` | bool | `true` | Allow side stacks to overflow and scroll. When disabled, rows fit within the column. |
-| `side_visible_windows` | int | `3` | Fallback visible row count before overflow. A pair counts as one row. |
-| `left_side_visible_windows` | int | `0` | Left-side override; `0` uses the fallback. |
-| `right_side_visible_windows` | int | `0` | Right-side override; `0` uses the fallback. |
-| `scroll_step` | float | `0.35` | Distance per scroll command as a fraction of a base row height. |
-| `left_header_height` | int | `0` | Reserved space at the top of the left column, in logical pixels. |
-| `right_header_height` | int | `0` | Reserved space at the top of the right column, in logical pixels. |
+| `master_factor` | float | `0.5` | Center width as a fraction of the work area. The side columns share the rest equally. |
+| `side_bias` | string | `"right"` | Default side for new windows, displaced center windows, and scrolling while the center has focus. |
+| `left_header_height` | int | `0` | Space reserved at the top of the left column, in logical pixels. |
+| `right_header_height` | int | `0` | Space reserved at the top of the right column, in logical pixels. |
+| `special_scale_factor` | float | `0.8` | Scale of every window on a special workspace, around its own center. |
 
-Side reservations leave the center at full height. The
-[Quickshell example](../examples/quickshell/README.md) uses them to place panels
-above the side windows without reserving space across the monitor.
+`master_factor` is read when Hyprland creates a workspace's layout. Horizontal
+resizing then changes that workspace's value, clamped to `0.1` through `0.9`.
+Configuration reloads, layout switches, and plugin reloads return to the
+configured value.
 
-Rows expand when fewer than the visible count exist. Once a stack overflows,
-the base row height is its available content height divided by the configured
-visible count. Vertical resizing adjusts a row's relative height.
+`side_bias` is `left` for `left`, `l`, or `0`. Every other value selects the
+right side, including misspellings and different capitalization.
+
+Header heights shorten only their side column; the center keeps the full height.
+This lets a panel sit above a side stack without a monitor-wide reservation. The
+[Quickshell example](../examples/quickshell/README.md) shows this setup. Header
+heights are clamped between zero and the column height.
+
+## Scrolling
+
+| Option | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `scrolling_enabled` | bool | `true` | Let side stacks overflow and scroll. When off, every row fits into its column. |
+| `side_visible_windows` | int | `3` | Rows visible before a stack overflows. A pair counts as one row. Values below `1` become `1`. |
+| `left_side_visible_windows` | int | `0` | Left-side override. `0` or less uses `side_visible_windows`. |
+| `right_side_visible_windows` | int | `0` | Right-side override. `0` or less uses `side_visible_windows`. |
+| `scroll_step` | float | `0.35` | Distance per scroll command as a fraction of one row. At least `0.05`. |
+
+With fewer rows than the visible count, rows grow to fill the column. Once a
+stack overflows, a row is the column height divided by the visible count, and
+the stack scrolls. Vertical resizing redistributes height between rows. It does
+not change the total height of the stack.
+
+Each workspace keeps its own scroll offsets. The `togglescrolling` and
+`setscrolling` commands override `scrolling_enabled` for every workspace.
 
 ## Tags
 
@@ -49,16 +74,21 @@ visible count. Vertical resizing adjusts a row's relative height.
 | `zone_tags_left` | string | `""` | Place matching windows in the left column. |
 | `zone_tags_center` | string | `""` | Place matching windows in the center column. |
 | `zone_tags_right` | string | `""` | Place matching windows in the right column. |
-| `follow_workspace_tags` | string | `""` | Move matching tiled windows to newly activated numeric workspaces on the same monitor. |
 | `pairing_left` | bool | `false` | Allow two eligible windows to share a left-side row. |
 | `pairing_right` | bool | `false` | Allow two eligible windows to share a right-side row. |
-| `pairing_tag_only` | bool | `true` | Require matching tags for pairing. |
-| `pairing_tags` | string | `"pair"` | Tags that make windows eligible for pairing. |
+| `pairing_tag_only` | bool | `true` | Only windows with a tag from `pairing_tags` are eligible. When `false`, every side window is eligible. |
+| `pairing_tags` | string | `"pair"` | Tags that make a window eligible for pairing. |
+| `follow_workspace_tags` | string | `""` | Tiled windows with these tags move to each numbered workspace you switch to on their monitor. |
 
-Tag lists are comma-separated. Zone priority is center, then left, then right.
-The first ordinary window occupies center even when tagged for a side. Cached
-placement and workspace-follow moves have their own restoration rules; see
-[window behavior](behavior.md).
+Tag lists are comma-separated, and spaces around entries are ignored. A window
+needs one tag from the list. Two paired windows can carry different tags from
+`pairing_tags`.
+
+When a window has several zone tags, center wins over left, and left wins over
+right. The first window on a workspace always takes the center, whatever its
+tags. [Window behavior](behavior.md) describes the placement order in full.
+
+Tags come from Hyprland window rules:
 
 ```lua
 hl.config({ plugin = { hyprtrizone = {
@@ -72,38 +102,41 @@ hl.config({ plugin = { hyprtrizone = {
 hl.window_rule({ name = "zone-games", match = { class = [[^(steam_app_.*)$]] }, tag = "+game" })
 hl.window_rule({ name = "zone-browsers", match = { class = [[^(firefox|chromium)$]] }, tag = "+browser" })
 hl.window_rule({ name = "pair-terminals", match = { class = [[^(kitty|alacritty|foot|wezterm)$]] }, tag = "+pair" })
+hl.window_rule({ name = "follow-music", match = { class = [[^(spotify)$]] }, tag = "+follow" })
 ```
 
-Following moves a window between workspaces. Named or special destination
-workspaces do not trigger it. Floating, pinned, hidden, and unmapped windows are
-excluded. A followed window retains its zone and goes to the front of that zone
-on the destination workspace.
-
-To reassign the focused window after changing its tags:
+Tags only apply when a window is placed. After changing the focused window's
+tags, `rezone` places it again:
 
 ```lua
-hl.bind("SUPER + g", hl.dsp.window.tag({ tag = "+game" }))
-hl.bind("SUPER + g", hl.dsp.layout("rezone"))
+hl.bind("SUPER + G", hl.dsp.window.tag({ tag = "+game" }))
+hl.bind("SUPER + G", hl.dsp.layout("rezone"))
 ```
 
 ## Overflow indicators
 
-Indicators count windows outside the visible portion of a side stack.
+A badge at the top or bottom of a side stack counts the windows scrolled
+completely out of view in that direction. A pair counts as two windows;
+partially visible rows are not counted.
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `indicator_width` | int | `112` | Width in logical pixels. |
-| `indicator_height` | int | `40` | Height in logical pixels. |
-| `indicator_font_size` | int | `24` | Count font size. |
-| `indicator_padding` | int | `8` | Inset from the top or bottom of the content area. |
-| `indicator_opacity` | float | `0.78` | Background opacity, clamped to `0.05` through `1.0`. |
-| `indicator_text_opacity` | float | `1.0` | Text opacity, clamped to `0.0` through `1.0`. |
+| `indicator_width` | int | `112` | Width in logical pixels, from `20` up to the column width. |
+| `indicator_height` | int | `40` | Height in logical pixels, from `14` up to a third of the column height. |
+| `indicator_font_size` | int | `24` | Count font size, `8` through `72`. |
+| `indicator_padding` | int | `8` | Distance from the top or bottom of the column. |
+| `indicator_opacity` | float | `0.78` | Background opacity, `0.05` through `1.0`. |
+| `indicator_text_opacity` | float | `1.0` | Text opacity, `0.0` through `1.0`. |
 | `indicator_text_color` | color | `"rgba(ffffffff)"` | Count text color. |
-| `indicator_show_zero` | bool | `false` | Display indicators even when their count is zero. |
+| `indicator_show_zero` | bool | `false` | Show badges with a count of zero. |
+
+Badges have a dark, rounded background and are centered horizontally in their
+column. With scrolling disabled, every row is visible and counts are zero.
 
 ## Runtime commands
 
-Bind commands with `hl.dsp.layout`:
+Commands go through Hyprland's layout dispatcher. Bind them with
+`hl.dsp.layout`:
 
 ```lua
 hl.bind("SUPER + mouse_up", hl.dsp.layout("scroll up"))
@@ -111,50 +144,62 @@ hl.bind("SUPER + mouse_down", hl.dsp.layout("scroll down"))
 hl.bind("SUPER + SPACE", hl.dsp.layout("swapwithmaster"))
 ```
 
-Or invoke them from a shell:
+Or send them from a shell:
 
 ```sh
 hyprctl dispatch 'hl.dsp.layout("scroll right down 2")'
 ```
 
+Arguments are separated by single spaces and are case-sensitive. Unknown
+commands and arguments are ignored without an error. Commands that act on a
+window use the focused tiled window of the active workspace and do nothing
+without one.
+
 ### Scrolling
 
 | Command | Effect |
 | --- | --- |
-| `scroll up` / `scroll down` | Scroll the focused side, or `side_bias` with center focus. |
-| `scroll left up` / `scroll left down` | Scroll the left stack. |
-| `scroll right up` / `scroll right down` | Scroll the right stack. |
-| `scrollup` / `scrolldown` | Aliases for scrolling the focused side. |
-| `windowfocus` | Bring the focused side window fully into view. |
-| `togglescrolling` | Toggle scrolling globally. Turning it off resets scroll offsets. |
-| `setscrolling on\|off\|default` | Override scrolling globally, or return to the configured value. |
+| `scroll [left\|right] up\|down [amount]` | Scroll a side stack. Without a side, scroll the focused side, or `side_bias` while the center has focus. |
+| `scrollup [left\|right\|amount]` | Scroll up. Takes either a side or an amount. |
+| `scrolldown [left\|right\|amount]` | Scroll down. Takes either a side or an amount. |
+| `windowfocus` | Scroll until the focused side window is fully visible. |
+| `togglescrolling` | Toggle scrolling on every workspace. |
+| `setscrolling on\|off\|default` | Override scrolling on every workspace, or return to `scrolling_enabled`. |
 
-Scroll commands accept a final multiplier, such as `scroll right down 2.0`.
-The default multiplier is `1.0`.
+The arguments of `scroll` must be in the order shown. `amount` multiplies
+`scroll_step` and defaults to `1.0`. Turning scrolling off resets all scroll
+offsets. `setscrolling` also accepts `1`/`true`, `0`/`false`, and `config` as
+an alias for `default`.
 
-### Zones and center windows
+### Zones and the center
 
 | Command | Effect |
 | --- | --- |
 | `movetozone left\|right\|center` | Move the focused window to a zone. |
-| `swapzone` | Move the focused side window to the opposite side. |
-| `swapwithmaster` | Exchange the focused side window with the first center window. With center focus, focus the first side window. |
-| `promote` | Move the focused window to center and move the other center windows to `side_bias`. |
-| `addmaster` | Add the focused side window to the center column. |
-| `removemaster` | Move the focused center window to `side_bias` when more than one center window exists. |
+| `swapzone` | Move the focused side window to the other side. |
+| `swapwithmaster` | Exchange the focused side window with the first center window. With the center focused, focus a side window instead. |
 | `focusmaster` | Focus the first center window. |
-| `rezone` | Apply the focused window's zone tags again. A center-tagged window displaces untagged center windows. |
-| `dropon <source> <target> [left\|right]` | Apply mouse-drop placement to two window selectors. The half defaults to `right`. |
+| `promote` | Make the focused side window the only center window. The previous center windows go to `side_bias`. |
+| `addmaster` | Add the focused side window to the center column. |
+| `removemaster` | Move the focused center window to `side_bias` if the center has other windows. |
+| `rezone` | Place the focused window again by its zone tags. Does nothing without a zone tag. |
+| `dropon <source> <target> [left\|right]` | Drop one window onto another, as with the mouse. See below. |
 
-`dropon` accepts selectors such as `title:^terminal$` or `address:0x1234`.
-It follows the [drag-and-drop rules](behavior.md#drag-and-drop) and is also used
-by the integration test.
+`focusmaster` and `swapwithmaster` also move the pointer to the focused window.
+
+`dropon` takes two window selectors, such as `title:^editor$` or
+`address:0x1234`. Selectors cannot contain spaces. The last argument names the
+half of the target the drop lands on; anything but `left` means `right`. The
+result follows the [drag-and-drop rules](behavior.md#drag-and-drop). The
+integration test uses this command to check drag-and-drop placement.
 
 ### Pairing
 
 | Command | Effect |
 | --- | --- |
-| `pairingleft on\|off\|toggle\|default` | Override pairing on the left side for all workspaces. |
-| `pairingright on\|off\|toggle\|default` | Override pairing on the right side for all workspaces. |
+| `pairingleft on\|off\|toggle\|default` | Override `pairing_left` on every workspace. |
+| `pairingright on\|off\|toggle\|default` | Override `pairing_right` on every workspace. |
 
-`default` returns to the configuration value.
+These also accept `1`/`true`, `0`/`false`, and `config` as an alias for
+`default`. Turning pairing off splits pairs into rows on screen but remembers
+them. Turning it on again restores those pairs; it does not form new ones.

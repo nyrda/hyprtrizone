@@ -20,6 +20,8 @@
         hyprtrizone = pkgs.callPackage ./nix/package.nix { };
         default = self.packages.${system}.hyprtrizone;
         demo-vm = vmDemo.vm;
+        # The 30:9 feature tour (hyprtrizone-demo.mp4). Not a check: it needs 8 cores and a few minutes.
+        demo-video = vmDemo.video;
 
         # The exact Hyprland the plugin above is built and VM-tested against. Running these guarantees a match.
         inherit (pkgs) hyprland xdg-desktop-portal-hyprland;

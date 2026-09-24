@@ -1,59 +1,73 @@
 # Quickshell example
 
-The demo runs two panels above the side stacks. The left panel contains
-clickable workspaces 1 through 4 and the focused window title. The right panel
-shows the local date and time. The center column keeps its full height.
+Two small panels that sit above the side stacks. The left panel shows
+workspaces 1 to 4, which can be clicked, and the title of the focused window.
+The right panel shows the date and time. The center column keeps the full
+monitor height.
+
+![Panels above both side stacks, with the center window reaching the top edge](../../docs/demo.png)
 
 ## Run
 
-The demo VM includes Quickshell and starts it automatically:
+The demo VM starts Quickshell by itself:
 
 ```sh
 ./dev.sh vm-demo
 ```
 
-For a local session, install Quickshell with Hyprland support. The pinned demo
-uses Quickshell 0.3.1. Run from the repository root:
+In your own session, install Quickshell with Hyprland support (the demo pins
+0.3.1) and run it from the repository root:
 
 ```sh
 quickshell -p examples/quickshell
 ```
 
-The [Lua example](../hyprtrizone-demo.lua) starts Quickshell on Hyprland startup.
-Set `HYPRTRIZONE_DEMO_DIR` to the absolute path of this repository's `examples`
-directory before starting Hyprland. Alternatively, copy the contents of
-`examples/` to `~/.config/hypr/hyprtrizone-demo`, the default location.
+The [example Lua config](../hyprtrizone-demo.lua) starts Quickshell when
+Hyprland starts. It looks for the examples in `HYPRTRIZONE_DEMO_DIR`, or in
+`~/.config/hypr/hyprtrizone-demo` if that variable is unset. Either set the
+variable to this repository's `examples` directory before starting Hyprland,
+or copy the contents of `examples/` there.
+
+The example config binds `Super+Shift+F7` to
+[`populate-demo.sh`](../populate-demo.sh), which opens the demo windows. It
+needs `jq` and a terminal that accepts `--title <title> <command>` and keeps
+that title. The default is `foot -o locked-title=yes`; set `TRIZONE_TERMINAL`
+to use another.
 
 ## Geometry
 
-`masterFactor: 0.5` and `headerHeight: 34` in `shell.qml` match the Lua demo's
-`master_factor`, `left_header_height`, and `right_header_height`. Change both
-configurations together. Each side is `screen.width * (1 - masterFactor) / 2`
-logical pixels wide.
+The panels do not read the layout. Two values in `shell.qml` must match the Lua
+config:
 
-Each split panel uses `exclusiveZone: 0`. Hyprtrizone reserves space within its
-side stacks. A positive layer-shell reservation would shorten the center too.
+| `shell.qml` | Lua config | Demo value |
+| --- | --- | --- |
+| `masterFactor` | `master_factor` | `0.5` |
+| `headerHeight` | `left_header_height`, `right_header_height` | `34` |
 
-The panels use fixed geometry and assume no other panels reserve monitor space.
-They appear on every monitor; the workspace highlight and title follow global
-focus. They do not track runtime master resizing, layout changes, or special
-workspaces. Fullscreen placement follows layer-shell behavior.
+Each panel is `screen.width * (1 - masterFactor) / 2` logical pixels wide.
+
+The panels use `exclusiveZone: 0`, so they reserve no monitor space. The header
+heights reserve the space inside the side columns instead. A positive exclusive
+zone would shorten the center column too.
+
+The panels assume no other panel reserves monitor space. They appear on every
+monitor, and the workspace highlight and window title follow global focus. They
+do not follow runtime resizing of the center, layout switches, or special
+workspaces.
 
 ## Full-width mode
 
-The shared `BarContents.qml` component also works with an ordinary Hyprland
-layout:
+The shared `BarContents.qml` also works as an ordinary top bar with any layout:
 
 ```sh
 QS_BAR_MODE=top quickshell -p examples/quickshell
 ```
 
-This creates one full-width panel and reserves 34 pixels at the top. It works
-independently of hyprtrizone. Stop the previous Quickshell instance before
-switching modes.
+This mode draws one full-width panel and reserves 34 pixels at the top of the
+monitor. Stop the other Quickshell instance before switching modes.
 
 ## Validation
 
-`./dev.sh vm-demo-screenshot` checks both modes in the demo VM. The split mode
-must create two 640 by 34 panels on a 2560 by 1080 monitor, with no monitor-wide
-reservation. The full-width mode must reserve 34 pixels at the top.
+`./dev.sh vm-demo-screenshot` checks both modes in the demo VM. In split mode,
+the panels must be 640×34 on a 2560×1080 monitor and reserve no space. In
+full-width mode, the panel must reserve 34 pixels at the top.

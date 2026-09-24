@@ -16,6 +16,7 @@ Commands:
   vm-test-interactive    Build and open the interactive NixOS test driver.
   vm-demo                Boot a throwaway NixOS VM running Hyprland with the plugin and examples/ demo.
   vm-demo-screenshot     Run that demo VM unattended and save its screenshot to docs/demo.png.
+  vm-demo-video          Record the 30:9 feature tour in the demo VM and save it to docs/demo.mp4.
   help                   Show this help.
 
 Environment:
@@ -127,7 +128,7 @@ vm_demo() {
     command -v nix-build >/dev/null 2>&1 || die "nix-build is required for the VM demo"
     cd "$ROOT_DIR"
     nix-build nix/hyprtrizone-vm-demo.nix -A vm -o result-vm-demo "$@"
-    log "starting the demo VM (SUPER+M exits Hyprland; its disk image lands in the current directory)"
+    log "starting the demo VM (SUPER+M exits Hyprland; its disk image is discarded afterwards)"
     local tmp
     tmp="$(mktemp -d)"
     (cd "$tmp" && "${ROOT_DIR}/result-vm-demo/bin/run-hyprtrizone-demo-vm")
@@ -140,6 +141,16 @@ vm_demo_screenshot() {
     nix-build nix/hyprtrizone-vm-demo.nix -A screenshot -o result-vm-demo-screenshot "$@"
     install -m644 result-vm-demo-screenshot/hyprtrizone-demo.png docs/demo.png
     log "wrote docs/demo.png"
+}
+
+vm_demo_video() {
+    command -v nix-build >/dev/null 2>&1 || die "nix-build is required for the VM demo"
+    cd "$ROOT_DIR"
+    # Nix reuses the previous recording until one of its inputs changes.
+    nix-build nix/hyprtrizone-vm-demo.nix -A video -o result-vm-demo-video "$@"
+    install -m644 result-vm-demo-video/hyprtrizone-demo.mp4 docs/demo.mp4
+    install -m644 result-vm-demo-video/hyprtrizone-demo-poster.png docs/demo-video.png
+    log "wrote docs/demo.mp4 and docs/demo-video.png"
 }
 
 cmd="${1:-build}"
@@ -172,6 +183,10 @@ case "$cmd" in
     vm-demo-screenshot)
         shift || true
         vm_demo_screenshot "$@"
+        ;;
+    vm-demo-video)
+        shift || true
+        vm_demo_video "$@"
         ;;
     help|-h|--help)
         usage
