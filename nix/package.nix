@@ -28,6 +28,7 @@
   libxcb,
   libxcb-errors,
   libxcb-wm,
+  pango,
   # Override to build from another source tree.
   hyprtrizoneSrc ? lib.cleanSourceWith {
     src = ../.;
@@ -75,6 +76,8 @@ stdenv.mkDerivation {
     libxcb
     libxcb-errors
     libxcb-wm
+    # Required through hyprgraphics' pkg-config file in some Hyprland releases.
+    pango
   ];
 
   enableParallelBuilding = true;
