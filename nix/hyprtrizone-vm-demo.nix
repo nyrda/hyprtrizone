@@ -79,7 +79,7 @@ let
 
       ${lib.optionalString populate ''
         hl.on("hyprland.start", function()
-          hl.exec_cmd("${demoDir}/populate-demo.sh")
+          hl.exec_cmd("${demoDir}/populate-demo.sh > /tmp/populate-demo.log 2>&1")
         end)
       ''}
       ${extraConfig}
@@ -196,7 +196,8 @@ in
           machine.wait_until_succeeds(f"{hyprctl} | jq -e '[.[] | select(.title | startswith(\"TRIZONE_\"))] | length >= 11'", timeout=120)
       except Exception:
           machine.screenshot("hyprtrizone-demo-failed")
-          machine.succeed("tail -n 40 /tmp/hyprland.log >&2 || true")
+          machine.succeed("cat /tmp/populate-demo.log >&2 || true")
+          machine.succeed("grep -v 'Hyprctl: new connection' /tmp/hyprland.log | tail -n 80 >&2 || true")
           machine.succeed(f"{hyprctl} | jq -c '.[] | {{title, workspace: .workspace.id}}' >&2 || true")
           machine.succeed("su - demo -c 'XDG_RUNTIME_DIR=/run/user/1000 hyprctl -i 0 configerrors' >&2 || true")
           raise

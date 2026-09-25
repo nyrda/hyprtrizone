@@ -13,6 +13,13 @@ fi
 # pairing rules match on it, and an interactive shell would otherwise rename the window (kitty locks it by itself).
 terminal="${TRIZONE_TERMINAL:-foot -o locked-title=yes}"
 
+# Hyprland can run this at startup before its socket answers; with pipefail, the first query
+# would end the script. Wait up to ten seconds for a client list.
+for _ in $(seq 50); do
+    hyprctl -j clients 2>/dev/null | jq -e 'type == "array"' >/dev/null 2>&1 && break
+    sleep 0.2
+done
+
 close_existing_demo() {
     hyprctl -j clients | jq -r '.[] | select(.title | startswith("TRIZONE_")) | .address' | while read -r address; do
         hyprctl dispatch "hl.dsp.window.close({ window = \"address:${address}\" })" >/dev/null || true
