@@ -18,9 +18,11 @@ PKG_CONFIG_LIBS := $(shell pkg-config --libs $(LUA_PKG))
 
 CXX ?= c++
 CXXFLAGS ?= -O2 -g
-CXXFLAGS += -std=c++2b -fPIC -MMD -MP
+# Unique symbols are shared across every loaded copy and keep dlclose from unloading the plugin;
+# the flag has to reach the compile step, not only the link.
+CXXFLAGS += -std=c++2b -fPIC -fno-gnu-unique -MMD -MP
 CPPFLAGS += -DWLR_USE_UNSTABLE $(PKG_CONFIG_CFLAGS)
-LDFLAGS += -shared --no-gnu-unique
+LDFLAGS += -shared
 LDLIBS += $(PKG_CONFIG_LIBS)
 
 .PHONY: all clean

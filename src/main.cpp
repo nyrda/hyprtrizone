@@ -67,6 +67,16 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
+
+    // Hyprland only compares the API version. A build left over from before a Hyprland update would load into
+    // the new compositor, so refuse unless the headers came from this exact build. Throwing here unloads the plugin.
+    const std::string HASH        = __hyprland_api_get_hash();
+    const std::string CLIENT_HASH = __hyprland_api_get_client_hash();
+    if (HASH != CLIENT_HASH) {
+        HyprlandAPI::addNotification(PHANDLE, "[hyprtrizone] Built for a different Hyprland. Rebuild the plugin.", CHyprColor{1.0, 0.2, 0.2, 1.0}, 10000);
+        throw std::runtime_error("[hyprtrizone] Hyprland version mismatch");
+    }
+
     GPLUGIN_SHUTTING_DOWN.store(false);
 
     HyprtrizoneConfig::init(PHANDLE);
