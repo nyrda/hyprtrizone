@@ -29,7 +29,7 @@ otherwise it falls back to the nixpkgs pin in `flake.lock`.
 - `src/pluginConfig.cpp/.hpp`: typed configuration and access helpers.
 - `src/hyprtrizoneLayout.cpp/.hpp`: placement, scrolling, pairing, drag and drop, runtime commands.
 - `src/StackIndicatorPassElement.cpp/.hpp`: overflow indicator render pass.
-- `examples/`: Lua config, window launcher, Quickshell example.
+- `examples/`: Lua config, window launcher, Quickshell example, Omarchy config.
 - `nix/package.nix`: plugin derivation for the flake and downstream `callPackage`.
 - `nix/module.nix`: matching Hyprland package and generated Lua loader.
 - `nix/hyprtrizone-vm-test.nix`: headless layout integration test.

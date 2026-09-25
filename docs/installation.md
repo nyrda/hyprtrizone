@@ -10,6 +10,7 @@ rebuild the plugin whenever Hyprland changes.
 | [Nix packages](#nix-packages-without-the-module) | You manage the Hyprland package yourself on Nix. |
 | [Manual build](#manual-build) | You want a local `.so`, for development or another distribution. |
 | [hyprpm](#hyprpm) | Your distribution provides Hyprland 0.56.2 and hyprpm. |
+| [Omarchy](omarchy.md) | You run Omarchy 4. Covers the build, the configuration, and Omarchy's keybindings. |
 
 ## NixOS module
 
@@ -139,7 +140,7 @@ update. The repository has no compatibility pins for older Hyprland releases.
 
 | Symptom | Check |
 | --- | --- |
-| The plugin fails to load | Rebuild against the running Hyprland. `hyprctl plugin list` shows loaded plugins. |
+| The plugin fails to load | Rebuild against the running Hyprland. A build for another Hyprland refuses to load and shows a notification. `hyprctl plugin list` shows loaded plugins. |
 | The layout is not active | Set `general.layout = "hyprtrizone"`. `hyprctl -j activeworkspace` shows the active layout in `tiledLayout`. |
 | Configuration errors | Run `hyprctl configerrors`. Load the plugin before its settings. |
 | No overflow badges | Badges only appear for hidden windows. Set `indicator_show_zero = true` to always show them. |

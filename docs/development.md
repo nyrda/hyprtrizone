@@ -44,7 +44,9 @@ with a 1920×1080 output and checks:
 - pairing on insertion, and pairs splitting when a member leaves,
 - keyboard moves between columns and rows,
 - every drag-and-drop case, through `dropon`,
-- switching layouts and back, and opening windows on another workspace,
+- grouping and ungrouping a window,
+- switching layouts and back with rows and pairs intact, and opening windows
+  on another workspace,
 - unloading and reloading the plugin with windows open.
 
 **Demo** (`nix/hyprtrizone-vm-demo.nix`, attribute `screenshot`) boots the demo
@@ -93,6 +95,25 @@ result until one of these files changes. The tour asserts the layout after
 each step, so a behavior change fails the recording instead of producing a
 misleading video.
 
+## Testing on Omarchy
+
+[Omarchy](omarchy.md) is not covered by the Nix tests. To test there, install
+it in a libvirt VM:
+
+- Use `virtio-vga-gl` with 3D acceleration and SPICE with OpenGL. In the guest,
+  Hyprland's log shows a `virgl` renderer instead of `llvmpipe`.
+- The Omarchy ISO installs without the wizard when a drive labelled `cidata` is
+  attached. The drive carries the wizard's output files:
+  `user_configuration.json` (disk, hostname, timezone, keyboard) and
+  `user_credentials.json` (user and password hash). An `authorized_keys` file
+  enables SSH access. The ISO repository's README lists every file, and
+  `test/integration.d/base-test.sh` there generates a complete set.
+- Boot the disk first and the ISO second. The empty disk falls through to the
+  ISO, and the installed system boots from the disk afterwards. Detach both
+  drives once the install is done.
+- Copy the working tree into the guest and run `make`. Then install the result
+  as described in [Omarchy](omarchy.md).
+
 ## Source map
 
 | Path | Responsibility |
@@ -101,7 +122,7 @@ misleading video.
 | `src/pluginConfig.cpp` | Option registration and typed access |
 | `src/hyprtrizoneLayout.cpp` | Placement, scrolling, pairing, movement, drag and drop, runtime commands |
 | `src/StackIndicatorPassElement.cpp` | Render pass element for the overflow badges |
-| `examples/` | Demo Lua config, window launcher, Quickshell panels |
+| `examples/` | Demo Lua config, window launcher, Quickshell panels, Omarchy config |
 | `nix/package.nix` | Plugin derivation, also usable with `callPackage` |
 | `nix/module.nix` | NixOS module and Lua loader |
 | `nix/hyprtrizone-vm-test.nix` | Layout integration test |

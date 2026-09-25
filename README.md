@@ -73,6 +73,7 @@ the example file only binds the wheel and the F-keys.
 
 The plugin must be built against the exact Hyprland build that loads it.
 [Installation](docs/installation.md) covers NixOS, a manual build, and hyprpm.
+[Omarchy](docs/omarchy.md) has its own guide.
 On NixOS, the module installs the matching Hyprland and a Lua loader:
 
 ```nix
@@ -111,6 +112,7 @@ hl.bind("SUPER + SPACE", hl.dsp.layout("swapwithmaster"))
 | Document | Contents |
 | --- | --- |
 | [Installation](docs/installation.md) | NixOS module, Nix packages, manual build, hyprpm, troubleshooting |
+| [Omarchy](docs/omarchy.md) | Installing on Omarchy 4, keybindings, the bar, hyprpm |
 | [Configuration](docs/configuration.md) | Every option with its default, and every runtime command |
 | [Window behavior](docs/behavior.md) | Placement, pairing, scrolling, drag and drop, resizing, workspaces |
 | [Quickshell example](examples/quickshell/README.md) | Panels above the side stacks |
