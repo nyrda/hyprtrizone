@@ -9,11 +9,11 @@
 # SUPER+mouse wheel scrolls the focused side stack (right stack when the center is focused).
 {
   system ? "x86_64-linux",
-  nixpkgs ? null,
+  pkgs ? import ./pkgs.nix { inherit system; },
 }:
 let
-  vmTest = import ./hyprtrizone-vm-test.nix ({ inherit system; } // (if nixpkgs == null then { } else { inherit nixpkgs; }));
-  inherit (vmTest) pkgs plugin hyprland;
+  vmTest = import ./hyprtrizone-vm-test.nix { inherit system pkgs; };
+  inherit (vmTest) plugin hyprland;
   lib = pkgs.lib;
 
   demoDir = pkgs.runCommand "hyprtrizone-demo" { } ''

@@ -1,28 +1,26 @@
 {
   system ? "x86_64-linux",
-  # Same pin as the flake: the nixpkgs revision whose Hyprland the plugin is ported to.
-  nixpkgs ?
-    let
-      locked = (builtins.fromJSON (builtins.readFile ../flake.lock)).nodes.nixpkgs.locked;
-    in
-    builtins.fetchTarball {
-      url = "https://github.com/NixOS/nixpkgs/archive/${locked.rev}.tar.gz";
-      sha256 = locked.narHash;
-    },
+  # Hyprland's package set at the tag locked in flake.lock.
+  pkgs ? import ./pkgs.nix { inherit system; },
 }:
 
 let
-  pkgs = import nixpkgs { inherit system; };
+  # Hyprland's flake versions its package "<release>+date=<date>_<commit>".
+  targetVersion = pkgs.lib.fileContents ../HYPRLAND_VERSION;
+  pinnedVersion = builtins.head (pkgs.lib.splitString "+" pkgs.hyprland.version);
 
   # Bumping the pin is a port: the pinned Hyprland has to be the release this branch targets.
-  targetVersion = pkgs.lib.fileContents ../HYPRLAND_VERSION;
   hyprland =
-    if pkgs.hyprland.version == targetVersion then
+    if pinnedVersion == targetVersion then
       pkgs.hyprland
     else
-      throw "hyprtrizone targets Hyprland ${targetVersion} (HYPRLAND_VERSION), the pinned nixpkgs has ${pkgs.hyprland.version}";
+      throw "hyprtrizone targets Hyprland ${targetVersion} (HYPRLAND_VERSION), flake.lock pins ${pkgs.hyprland.version}";
 
-  plugin = pkgs.callPackage ./package.nix { inherit hyprland; };
+  # Same compiler as Hyprland, so the plugin shares its C++ runtime.
+  plugin = pkgs.callPackage ./package.nix {
+    inherit hyprland;
+    inherit (hyprland) stdenv;
+  };
 
   testConfig = pkgs.writeText "hyprtrizone-test.lua" ''
     hl.plugin.load("${plugin}/lib/hyprtrizoneLayout.so")
@@ -78,7 +76,7 @@ let
 
 in
 (pkgs.testers.runNixOSTest {
-  name = "hyprtrizone-hyprland-nixpkgs-vm";
+  name = "hyprtrizone-vm-test";
 
   nodes.machine =
     { pkgs, ... }:
