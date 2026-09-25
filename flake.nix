@@ -1,23 +1,23 @@
 {
   description = "hyprtrizone: three-zone Hyprland layout with scrolling side stacks";
 
-  # Pinned to a nixpkgs revision whose Hyprland the plugin is ported to and tested against.
-  # nix/hyprtrizone-vm-test.nix and nix/hyprtrizone-vm-demo.nix read this pin from flake.lock.
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/892e394af45ebd93800aa2e216e87f385ac39516";
+  # Hyprland's own flake at the release this branch targets (HYPRLAND_VERSION). Everything else, including
+  # nixpkgs for the test VMs, comes from its package set (nix/pkgs.nix). Do not make it follow another nixpkgs.
+  inputs.hyprland.url = "github:hyprwm/Hyprland/v0.56.1";
 
   outputs =
-    { self, nixpkgs }:
+    { self, hyprland }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      vmTest = import ./nix/hyprtrizone-vm-test.nix { inherit system nixpkgs; };
-      vmDemo = import ./nix/hyprtrizone-vm-demo.nix { inherit system nixpkgs; };
+      pkgs = import ./nix/pkgs.nix { inherit system hyprland; };
+      vmTest = import ./nix/hyprtrizone-vm-test.nix { inherit system pkgs; };
+      vmDemo = import ./nix/hyprtrizone-vm-demo.nix { inherit system pkgs; };
     in
     {
-      # Built against the pinned nixpkgs Hyprland. To build against your own compositor package instead:
+      # Built against the pinned Hyprland. To build against your own compositor package instead:
       #   pkgs.callPackage "${inputs.hyprtrizone}/nix/package.nix" { }
       packages.${system} = {
-        hyprtrizone = pkgs.callPackage ./nix/package.nix { };
+        hyprtrizone = vmTest.plugin;
         default = self.packages.${system}.hyprtrizone;
         demo-vm = vmDemo.vm;
         # The 30:9 feature tour (hyprtrizone-demo.mp4). Not a check: it needs 8 cores and a few minutes.
@@ -37,6 +37,8 @@
         demo = vmDemo.screenshot;
       };
 
-      devShells.${system}.default = pkgs.mkShell { inputsFrom = [ self.packages.${system}.hyprtrizone ]; };
+      devShells.${system}.default = pkgs.mkShell.override { inherit (pkgs.hyprland) stdenv; } {
+        inputsFrom = [ self.packages.${system}.hyprtrizone ];
+      };
     };
 }
