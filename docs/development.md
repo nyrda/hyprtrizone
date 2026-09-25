@@ -162,7 +162,15 @@ git cherry-pick <commit>
 ./dev.sh vm-test
 ```
 
-Never merge `master` into a release branch. Once `master` is ported to a newer
+The branch of the newest release fast-forwards instead, as long as `master`
+has not moved on to another release:
+
+```sh
+git switch hyprland-0.56.2
+git merge --ff-only master
+```
+
+Never merge `master` into a release branch otherwise. Once `master` is ported to a newer
 Hyprland, the merge brings that port along and the branch no longer builds.
 Keep a release branch updated while the distributions you care about still
 ship its release. Omarchy's stable channel runs about a month behind Arch.
