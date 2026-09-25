@@ -123,7 +123,7 @@ Then, as your user inside a running Hyprland session:
 
 ```sh
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone hyprland-0.56.2
+hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.56.2
 hyprpm enable hyprtrizone
 ```
 
@@ -142,7 +142,8 @@ end)
 
 Put plugin settings in the same `hyprctl eval` call, or set them from a
 separate file loaded after the plugin. Run `hyprpm update` after every Hyprland
-update. After an update to another Hyprland release, remove the repository with
+update. hyprpm needs the branch with its `origin/` prefix. After an update to
+another Hyprland release, remove the repository with
 `hyprpm remove hyprtrizone` and add the branch for the new release.
 
 ## Troubleshooting

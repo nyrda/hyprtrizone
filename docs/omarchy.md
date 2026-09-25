@@ -128,12 +128,13 @@ To use it anyway, install its build tools and add the plugin:
 ```sh
 sudo pacman -S --needed cmake meson
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone hyprland-0.56.2
+hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.56.2
 hyprpm enable hyprtrizone
 ```
 
-Use the branch for your Hyprland release. When an update changes the release,
-remove the repository with `hyprpm remove hyprtrizone` and add the new branch.
+Use the branch for your Hyprland release, with the `origin/` prefix. When an
+update changes the release, remove the repository with `hyprpm remove
+hyprtrizone` and add the new branch.
 
 Remove the `hl.plugin.load` line from `hyprtrizone.lua`, and add a start hook
 that loads the plugin and then reloads the configuration:
