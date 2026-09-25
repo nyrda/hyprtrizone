@@ -22,7 +22,7 @@ hl.config({
             scrolling_enabled = true,
             side_visible_windows = 2,
             left_side_visible_windows = 2,
-            right_side_visible_windows = 2,
+            right_side_visible_windows = 3,
             scroll_step = 0.65,
 
             pairing_left = true,

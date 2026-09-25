@@ -64,12 +64,17 @@ virtual monitor, with animations enabled, and runs a scripted tour:
 1. Zone placement from tags and `side_bias`.
 2. Overflowing and scrolling side stacks.
 3. Pairing on insertion.
-4. Drag and drop within a side stack, to pair two windows and to swap a pair.
-5. `swapwithmaster` and back.
-6. Keyboard moves within a pair, across columns, and between rows.
-7. Resizing the center.
-8. Workspace following.
-9. Toggling scrolling off and on.
+4. Changing the right side's row count at runtime.
+5. Drag and drop within a side stack, to pair two windows and to swap a pair.
+6. `swapwithmaster` and back.
+7. Keyboard moves within a pair, across columns, and between rows.
+8. Narrowing and restoring the center.
+9. Workspace following.
+10. Toggling scrolling off and on.
+
+The title cards play in real time. Everything between them is encoded at 1.5×
+speed (`TOUR_SPEED` in `tour.py`), so the script can leave comfortable pauses
+without slowing the video.
 
 The tour uses real input. Keys go through QEMU, and pointer drags go through
 `ydotool`. A Quickshell overlay adds captions and the title cards; the tour

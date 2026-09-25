@@ -155,7 +155,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         CHyprtrizoneAlgorithm::pruneCachedWindowState();
     });
 
-    return {"hyprtrizone", "3-zone panoramic layout with smooth side-stack scrolling", "daniel", "1.0"};
+    return {"hyprtrizone", "Three-zone layout with scrolling side stacks and window pairing", "nyrda", "1.0"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {

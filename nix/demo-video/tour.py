@@ -163,19 +163,26 @@ retry(lambda _: len(panels()) == 2)
 assert not hyprctl("configerrors").strip(), hyprctl("configerrors")
 park()
 
+tour("card", "hyprtrizone", "A three-zone Hyprland layout for ultrawide monitors", f"Hyprland 0.56.2  ·  {WIDTH}×{HEIGHT}  ·  recorded in a NixOS VM")
+time.sleep(1.2)
+
 # Started by Hyprland, so it outlives the su session. A near-lossless intermediate; the host encodes the result.
-# wf-recorder only captures damaged frames, so its first frame is the title card fading in.
+# wf-recorder captures one frame on start and then only damaged frames, so the video opens on the finished card.
 dispatch("hl.dsp.exec_cmd([==[wf-recorder --no-dmabuf -c libx264 -p preset=ultrafast -p crf=12 -y -f /tmp/tour.mkv > /tmp/wf-recorder.log 2>&1]==])")
 machine.wait_until_succeeds("pgrep -u demo wf-recorder", timeout=30)
-time.sleep(1.5)
-# Video time starts with this card's fade-in, the first change on screen.
 recording_started = time.monotonic()
-tour("card", "hyprtrizone", "A three-zone Hyprland layout for ultrawide monitors", f"Hyprland 0.56.2  ·  {WIDTH}×{HEIGHT}  ·  recorded in a NixOS VM")
-time.sleep(4.5)
 
-# 1. The center column.
+
+def video_time():
+    return time.monotonic() - recording_started
+
+
+time.sleep(4.0)
+
+# 1. The center column. Everything from here to the outro card is encoded at TOUR_SPEED.
 tour("hideCard")
-time.sleep(1.2)
+time.sleep(1.0)
+tour_started = video_time()
 caption("A main column in the middle", "The first window takes the center: half the width, full height.")
 time.sleep(1.2)
 spawn("editor", "tour-center", "center", "The main window. It keeps the full monitor height, even below the side panels.", pause=2.5)
@@ -190,16 +197,16 @@ spawn("music", "tour-left-follow", "follow", "Tagged for the left column and to 
 assert_layout("zone placement", lambda: zone("notes") == "right" and zone("chat") == "left" and zone("music") == "left")
 
 # 3. Scrolling and overflow indicators.
-caption("Stacks scroll instead of shrinking", "Two rows stay visible here. The badges count windows above and below.")
+caption("Stacks scroll instead of shrinking", "Three rows stay visible on the right. The badges count windows above and below.")
 spawn("logs", "tour-right-pair", "pair", "Right column, pairing tag.")
 spawn("build", "tour-right", "right", "Right column.")
 spawn("tests", "tour-right", "right", "Right column. The stack now overflows.", pause=2.0)
 caption("Stacks scroll instead of shrinking", "Scroll a side stack with the mouse wheel.", "Super+Wheel")
-for _ in range(3):
+for _ in range(2):
     layout("scroll right up")
     time.sleep(0.9)
 time.sleep(1.2)
-for _ in range(3):
+for _ in range(2):
     layout("scroll right down")
     time.sleep(0.9)
 time.sleep(1.0)
@@ -210,9 +217,28 @@ time.sleep(1.0)
 spawn("shell", "tour-right-pair", "pair", "Pairing tag.")
 spawn("shell-2", "tour-right-pair", "pair", "Pairing tag. Shares the row with shell.", pause=2.5)
 assert_layout("pair on insertion", lambda: paired("shell", "shell-2"))
-poster_at = time.monotonic() - recording_started
+poster_at = video_time()
 
-# 5. Drag and drop within a stack. Both drags lift a pair member, so no row disappears while dragging.
+# 5. Row counts per side.
+caption("Each side keeps its own row count", "Two rows on the left and three on the right here. Four on the right:", "right_side_visible_windows")
+
+
+def set_right_rows(count):
+    hyprctl("eval " + shlex.quote(f"hl.config({{ plugin = {{ hyprtrizone = {{ right_side_visible_windows = {count} }} }} }})"))
+    # The layout picks up option changes on its next pass; this command only triggers one.
+    layout("setscrolling default")
+
+
+time.sleep(1.4)
+set_right_rows(4)
+assert_layout("four right rows", lambda: client("tests")["size"][1] < 300)
+time.sleep(2.4)
+caption("Each side keeps its own row count", "Back to three.", "right_side_visible_windows")
+set_right_rows(3)
+assert_layout("three right rows", lambda: client("tests")["size"][1] > 300)
+time.sleep(1.8)
+
+# 6. Drag and drop within a stack. Both drags lift a pair member, so no row disappears while dragging.
 caption("Rearrange a stack by drag and drop", "Drop onto a single window to pair with it. The pointer picks the half.", "Super+Left drag")
 spawn("todo", "tour-right-pair", "pair", "Pairing tag. Opens below the full pair, so it starts a new row.", pause=1.4)
 super_drag(point_in("shell", 0.5, 0.4), point_in("todo", 0.75, 0.45))
@@ -234,7 +260,7 @@ focus("editor")
 keys("meta_l-spc", pause=2.0)
 assert_layout("editor returns to the center", lambda: zone("editor") == "center" and zone("shell-2") == "right")
 
-# 6. Keyboard movement between columns and rows.
+# 7. Keyboard movement between columns and rows.
 caption("Move windows with the keyboard", "Toward a partner swaps the pair; further travels through the columns.", "Super+Shift+Arrows")
 focus("todo")
 time.sleep(1.0)
@@ -247,17 +273,17 @@ assert_layout("todo joins the left stack", lambda: zone("todo") == "left")
 caption("Move windows with the keyboard", "Up and down trade rows within a column.", "Super+Shift+Up")
 keys("meta_l-shift-up", pause=2.2)
 
-# 7. Resizing the center.
-caption("Resize the main column", "Both side columns follow symmetrically.", "Super+Right drag")
+# 8. Resizing the center.
+caption("Resize the main column", "Narrow it and both side columns grow symmetrically.", "Super+Right drag")
 time.sleep(1.0)
 edge = point_in("editor", 0.93, 0.5)
-super_drag(edge, (edge[0] + 420, edge[1]), button="right", duration=0.9)
+super_drag(edge, (edge[0] - 420, edge[1]), button="right", duration=0.9)
 time.sleep(1.6)
 edge = point_in("editor", 0.93, 0.5)
-super_drag(edge, (edge[0] - 420, edge[1]), button="right", duration=0.9)
+super_drag(edge, (edge[0] + 420, edge[1]), button="right", duration=0.9)
 time.sleep(1.4)
 
-# 8. Workspace following.
+# 9. Workspace following.
 caption("Windows that follow you", "A tagged window moves to each workspace you open and keeps its zone.", "Super+2")
 focus("editor")
 park()
@@ -267,7 +293,7 @@ assert_layout("music follows to workspace 2", lambda: client("music")["workspace
 caption("Windows that follow you", "Scroll offsets and rows belong to each workspace.", "Super+1")
 keys("meta_l-1", pause=2.4)
 
-# 9. Fit instead of scroll.
+# 10. Fit instead of scroll.
 caption("Or fit every row", "Scrolling and pairing can be toggled at runtime.", "Super+Shift+F10")
 time.sleep(1.2)
 keys("meta_l-shift-f10", pause=2.8)
@@ -275,9 +301,8 @@ keys("meta_l-shift-f10", pause=1.8)
 
 tour("hideCaption")
 time.sleep(0.8)
+tour_ended = video_time()
 tour("card", "hyprtrizone", "Try it:  ./dev.sh vm-demo", "github.com/nyrda/hyprtrizone")
-# The screen stops changing once the card is in; the encoder holds the last frame for OUTRO_HOLD seconds.
-OUTRO_HOLD = 4.0
 time.sleep(1.5)
 
 machine.succeed("pkill -INT -u demo wf-recorder")
@@ -287,10 +312,22 @@ machine.copy_from_machine("/tmp/tour.mkv")
 
 out = str(machine.out_dir)
 raw = os.path.join(out, "tour.mkv")
+
+# The tour plays at TOUR_SPEED; the title cards keep their pace. The screen stops changing once the outro card
+# is in, so the encoder holds its last frame for OUTRO_HOLD seconds.
+TOUR_SPEED = 1.5
+OUTRO_HOLD = 6.0
+timeline = (
+    f"[0:v]fps=60,split=3[a][b][c];"
+    f"[a]trim=end={tour_started:.3f},setpts=PTS-STARTPTS[intro];"
+    f"[b]trim=start={tour_started:.3f}:end={tour_ended:.3f},setpts=(PTS-STARTPTS)/{TOUR_SPEED}[tour];"
+    f"[c]trim=start={tour_ended:.3f},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration={OUTRO_HOLD}[outro];"
+    "[intro][tour][outro]concat=n=3:v=1:a=0,fps=30,format=yuv420p[video]"
+)
 subprocess.run(
     [
         FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-i", raw,
-        "-vf", f"fps=30,tpad=stop_mode=clone:stop_duration={OUTRO_HOLD},format=yuv420p",
+        "-filter_complex", timeline, "-map", "[video]",
         "-c:v", "libx264", "-preset", "slow", "-crf", "24", "-tune", "animation",
         "-movflags", "+faststart", "-an",
         os.path.join(out, "hyprtrizone-demo.mp4"),

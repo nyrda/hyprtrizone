@@ -9,7 +9,7 @@ rebuild the plugin whenever Hyprland changes.
 | [NixOS module](#nixos-module) | You run NixOS. The flake pins Hyprland and the plugin together. |
 | [Nix packages](#nix-packages-without-the-module) | You manage the Hyprland package yourself on Nix. |
 | [Manual build](#manual-build) | You want a local `.so`, for development or another distribution. |
-| [hyprpm](#hyprpm) | Your distribution provides Hyprland 0.56.2 and its headers. |
+| [hyprpm](#hyprpm) | Your distribution provides Hyprland 0.56.2 and hyprpm. |
 
 ## NixOS module
 
@@ -17,8 +17,8 @@ The flake provides the plugin, the matching Hyprland and portal packages, and a
 NixOS module for `x86_64-linux`.
 
 ```nix
-# flake.nix. SSH access is required for this private repository.
-inputs.hyprtrizone.url = "git+ssh://git@github.com/nyrda/hyprtrizone";
+# flake.nix
+inputs.hyprtrizone.url = "github:nyrda/hyprtrizone";
 ```
 
 Do not add `inputs.nixpkgs.follows = "nixpkgs"` to this input. It would build
@@ -101,14 +101,26 @@ hl.config({ general = { layout = "hyprtrizone" } })
 ## hyprpm
 
 hyprpm builds plugins against a system-managed Hyprland. For a Nix-managed
-Hyprland, use the module or packages above. With the build dependencies from
-the manual build installed and SSH access to the repository:
+Hyprland, use the module or packages above. hyprpm needs `git`, a C++23
+compiler, `pkg-config`, `cmake`, `cpio`, and `meson`; the plugin build also
+needs the Lua 5.5 development files. Some distributions ship hyprpm as a
+separate package. On Arch Linux and CachyOS:
+
+```sh
+sudo pacman -S --needed hyprland hyprpm base-devel git
+```
+
+Then, as your user inside a running Hyprland session:
 
 ```sh
 hyprpm update
-hyprpm add git@github.com:nyrda/hyprtrizone.git
+hyprpm add https://github.com/nyrda/hyprtrizone
 hyprpm enable hyprtrizone
 ```
+
+`hyprpm update` downloads the Hyprland sources that match the running
+compositor and installs their headers. It asks for your password through
+`sudo`.
 
 hyprpm loads plugins after Hyprland starts. Select the layout once the plugin
 has loaded:

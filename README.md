@@ -9,7 +9,7 @@ decide where a window goes.
 
 [![The hyprtrizone feature tour on a 30:9 monitor](docs/demo-video.png)](docs/demo.mp4)
 
-**[▶ Watch the feature tour](docs/demo.mp4)** (3600×1080, about two minutes).
+**[▶ Watch the feature tour](docs/demo.mp4)** (3600×1080, 80 seconds).
 It was recorded by `./dev.sh vm-demo-video` in a NixOS VM.
 
 This is a personal plugin. It is built and tested against **Hyprland 0.56.2**
@@ -37,7 +37,7 @@ together.
 ## Try it in a VM
 
 ```sh
-git clone git@github.com:nyrda/hyprtrizone.git
+git clone https://github.com/nyrda/hyprtrizone.git
 cd hyprtrizone
 ./dev.sh vm-demo
 ```
@@ -76,8 +76,8 @@ The plugin must be built against the exact Hyprland build that loads it.
 On NixOS, the module installs the matching Hyprland and a Lua loader:
 
 ```nix
-# flake.nix. SSH access is required for this private repository.
-inputs.hyprtrizone.url = "git+ssh://git@github.com/nyrda/hyprtrizone";
+# flake.nix
+inputs.hyprtrizone.url = "github:nyrda/hyprtrizone";
 ```
 
 ```nix
