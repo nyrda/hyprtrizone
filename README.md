@@ -14,7 +14,7 @@ It was recorded by `./dev.sh vm-demo-video` in a NixOS VM.
 
 This is a personal plugin. It is built and tested against **Hyprland 0.56.2**
 with a Lua configuration. The Nix flake pins the compositor and the plugin
-together.
+together. Other Hyprland releases have their own `hyprland-<version>` branches.
 
 ## Features
 

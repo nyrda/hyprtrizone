@@ -1,0 +1,51 @@
+#!/bin/bash
+# Rebuild hyprtrizone for the installed Hyprland, from the branch that targets it.
+#
+# Install as an Omarchy post-update hook, so it runs after every `omarchy update`:
+#   omarchy hook install post-update examples/omarchy/hyprtrizone-update
+#
+# Builds in a dedicated clone (HYPRTRIZONE_SRC, default ~/.local/src/hyprtrizone), which it checks out
+# detached. It never fails the update: on any problem it reports and keeps the installed build.
+
+SRC=${HYPRTRIZONE_SRC:-$HOME/.local/src/hyprtrizone}
+DEST=$HOME/.local/lib/hyprtrizone/hyprtrizoneLayout.so
+STAMP=$HOME/.local/lib/hyprtrizone/build-stamp
+LOG=/tmp/hyprtrizone-update.log
+
+report() {
+  echo "hyprtrizone: $1"
+  omarchy-notification-send -u "${2:-normal}" "hyprtrizone" "$1" 2>/dev/null || true
+}
+
+VERSION=$(pacman -Q hyprland 2>/dev/null | awk '{ print $2 }')
+VERSION=${VERSION#*:}
+VERSION=${VERSION%-*}
+[[ -n $VERSION ]] || { report "Hyprland is not installed" critical; exit 0; }
+
+git -C "$SRC" fetch --quiet origin || { report "Could not fetch updates into $SRC" critical; exit 0; }
+
+# master targets the newest supported release; every release also has its own branch.
+if git -C "$SRC" rev-parse --quiet --verify "origin/hyprland-$VERSION" >/dev/null; then
+  REF=origin/hyprland-$VERSION
+elif [[ $(git -C "$SRC" show origin/master:HYPRLAND_VERSION 2>/dev/null) == "$VERSION" ]]; then
+  REF=origin/master
+else
+  report "No branch supports Hyprland $VERSION yet. The layout stays off until one does." critical
+  exit 0
+fi
+
+git -C "$SRC" checkout --quiet --detach "$REF" || { report "Could not check out $REF in $SRC" critical; exit 0; }
+
+# Rebuild only when the source or a package that goes into the plugin's build hash changed.
+STATE="$(git -C "$SRC" rev-parse HEAD) $(pacman -Q hyprland aquamarine hyprutils hyprlang hyprgraphics hyprcursor 2>/dev/null | tr '\n' ' ')"
+[[ -f $DEST && $(cat "$STAMP" 2>/dev/null) == "$STATE" ]] && exit 0
+
+# Hyprland's headers are system headers, so make cannot see that they changed: always build from scratch.
+if ! { make -C "$SRC" clean && make -C "$SRC" -j"$(nproc)"; } >"$LOG" 2>&1; then
+  report "Build for Hyprland $VERSION failed, see $LOG" critical
+  exit 0
+fi
+
+install -Dm755 "$SRC/hyprtrizoneLayout.so" "$DEST"
+printf '%s\n' "$STATE" >"$STAMP"
+report "Built ${REF#origin/} for Hyprland $VERSION. Log out and back in to load it."

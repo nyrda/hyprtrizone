@@ -4,6 +4,10 @@ Hyprtrizone targets **Hyprland 0.56.2** with a Lua configuration. A Hyprland
 plugin only loads into the exact compositor build it was compiled against, so
 rebuild the plugin whenever Hyprland changes.
 
+`master` targets the newest supported Hyprland release. Every supported release
+also has a `hyprland-<version>` branch, for example `hyprland-0.56.2`. On a
+distribution, build the branch for the Hyprland you have installed.
+
 | Method | Use it when |
 | --- | --- |
 | [NixOS module](#nixos-module) | You run NixOS. The flake pins Hyprland and the plugin together. |
@@ -92,6 +96,10 @@ development files with their dependencies, and Lua 5.5 development files, then
 run `make`. Set `LUA_PKG` if your distribution uses an unusual pkg-config name
 for Lua.
 
+The build stops when `pkg-config` finds a different Hyprland than the branch
+targets (`HYPRLAND_VERSION`). Switch to the matching `hyprland-<version>` branch.
+`make IGNORE_HYPRLAND_VERSION=1` skips the check for porting.
+
 Load the result by absolute path:
 
 ```lua
@@ -115,7 +123,7 @@ Then, as your user inside a running Hyprland session:
 
 ```sh
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone
+hyprpm add https://github.com/nyrda/hyprtrizone hyprland-0.56.2
 hyprpm enable hyprtrizone
 ```
 
@@ -134,7 +142,8 @@ end)
 
 Put plugin settings in the same `hyprctl eval` call, or set them from a
 separate file loaded after the plugin. Run `hyprpm update` after every Hyprland
-update. The repository has no compatibility pins for older Hyprland releases.
+update. After an update to another Hyprland release, remove the repository with
+`hyprpm remove hyprtrizone` and add the branch for the new release.
 
 ## Troubleshooting
 

@@ -1,7 +1,8 @@
 [repository]
 name = "hyprtrizone"
 authors = ["nyrda"]
-# Hyprland commit to matching plugin commit. This repository targets Hyprland 0.56.2.
+# Hyprland commit to matching plugin commit. Unused: each hyprland-<version> branch targets one release
+# (HYPRLAND_VERSION); add it with `hyprpm add <url> hyprland-<version>`.
 commit_pins = []
 
 [hyprtrizone]

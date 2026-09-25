@@ -135,15 +135,55 @@ window ID, keep a window's zone, row, pair, and follow state across layout
 switches and workspace moves. A registry of live instances serves rendering
 and the global scrolling toggles.
 
-## Updating Hyprland
+## Hyprland versions and branches
 
-1. Update the nixpkgs input in `flake.nix` and `flake.lock`.
-2. Port the plugin against that Hyprland. A matching checkout at
-   `HYPRLAND_ROOT` helps with API reference.
-3. Update the expected version in `nix/hyprtrizone-vm-test.nix`.
+Each branch targets one Hyprland release, named in `HYPRLAND_VERSION`:
+
+| Branch | Targets |
+| --- | --- |
+| `master` | The newest release the plugin is ported to |
+| `hyprland-<version>` | That release, for example `hyprland-0.56.2` |
+
+Every supported release has its own branch; the newest one points at the same
+commit as `master` until `master` moves on. The Makefile stops when
+`pkg-config` finds a different Hyprland, the Nix test fails to evaluate when
+the pinned nixpkgs has a different one, and CI runs on `master` and every
+`hyprland-*` branch. Distribution users build the branch for their installed
+Hyprland; the [Omarchy update hook](omarchy.md#updates) picks it automatically.
+
+### Fixes
+
+Commit fixes on `master`, then cherry-pick them onto the release branches that
+still get updates:
+
+```sh
+git switch hyprland-0.56.1
+git cherry-pick <commit>
+./dev.sh vm-test
+```
+
+Never merge `master` into a release branch. Once `master` is ported to a newer
+Hyprland, the merge brings that port along and the branch no longer builds.
+Keep a release branch updated while the distributions you care about still
+ship its release. Omarchy's stable channel runs about a month behind Arch.
+
+### Porting to a new release
+
+1. Branch the current state: `git branch hyprland-<current version> master`,
+   unless that branch already points there.
+2. On `master`, update the nixpkgs input in `flake.nix` and `flake.lock` to a
+   revision with the new Hyprland, and write the new version to
+   `HYPRLAND_VERSION`.
+3. Port the plugin. A matching checkout at `HYPRLAND_ROOT` helps with API
+   reference. `make IGNORE_HYPRLAND_VERSION=1` builds against other headers
+   while porting.
 4. Run the package build and both VM tests, then regenerate the screenshot and
    video.
 5. Update the version in the documentation.
+6. Create `hyprland-<new version>` at the new `master`.
+
+A release that needs no code changes, typically a patch release, still gets its
+own branch with its own pin and version file, so its tests run against it.
 
 Keep behavior changes out of dependency ports. `setPositionGlobal` already
 applies Hyprland's gaps, and pairing must stay local to the insertion point.

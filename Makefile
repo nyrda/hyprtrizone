@@ -25,14 +25,28 @@ CPPFLAGS += -DWLR_USE_UNSTABLE $(PKG_CONFIG_CFLAGS)
 LDFLAGS += -shared
 LDLIBS += $(PKG_CONFIG_LIBS)
 
-.PHONY: all clean
+# Each branch targets one Hyprland release. Headers of another release can compile and still misbehave,
+# so the build stops unless IGNORE_HYPRLAND_VERSION=1 (for porting).
+HYPRLAND_TARGET := $(shell cat HYPRLAND_VERSION)
+HYPRLAND_FOUND := $(shell pkg-config --modversion hyprland 2>/dev/null)
+
+.PHONY: all clean check-hyprland
 
 all: $(TARGET)
+
+check-hyprland:
+ifneq ($(IGNORE_HYPRLAND_VERSION),1)
+	@if [ "$(HYPRLAND_FOUND)" != "$(HYPRLAND_TARGET)" ]; then \
+		echo "error: this branch targets Hyprland $(HYPRLAND_TARGET), pkg-config finds '$(HYPRLAND_FOUND)'." >&2; \
+		echo "Build the hyprland-$(HYPRLAND_FOUND) branch, or set IGNORE_HYPRLAND_VERSION=1 to port." >&2; \
+		exit 1; \
+	fi
+endif
 
 $(TARGET): $(OBJ)
 	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(LDLIBS)
 
-$(BUILD_DIR)/%.o: %.cpp
+$(BUILD_DIR)/%.o: %.cpp | check-hyprland
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 

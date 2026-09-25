@@ -14,12 +14,13 @@
 let
   pkgs = import nixpkgs { inherit system; };
 
-  # Bumping the pin is a port: make the expected Hyprland version explicit.
+  # Bumping the pin is a port: the pinned Hyprland has to be the release this branch targets.
+  targetVersion = pkgs.lib.fileContents ../HYPRLAND_VERSION;
   hyprland =
-    if pkgs.hyprland.version == "0.56.2" then
+    if pkgs.hyprland.version == targetVersion then
       pkgs.hyprland
     else
-      throw "hyprtrizone is ported to Hyprland 0.56.2, the pinned nixpkgs has ${pkgs.hyprland.version}";
+      throw "hyprtrizone targets Hyprland ${targetVersion} (HYPRLAND_VERSION), the pinned nixpkgs has ${pkgs.hyprland.version}";
 
   plugin = pkgs.callPackage ./package.nix { inherit hyprland; };
 

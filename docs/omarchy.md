@@ -18,13 +18,18 @@ pacman -Q hyprland   # hyprland 0.56.2-…
 The plugin only loads into the Hyprland build whose headers it was compiled
 against. A build for another version refuses to load and shows a notification.
 
+Each Hyprland release has its own branch, `hyprland-<version>`. Build the one
+that matches `pacman -Q hyprland`. If there is none yet, that release is not
+supported yet.
+
 ## Try it without changing the configuration
 
 Build the plugin, load it into the running session, and switch the layout:
 
 ```sh
-git clone https://github.com/nyrda/hyprtrizone.git
-cd hyprtrizone
+git clone https://github.com/nyrda/hyprtrizone.git ~/.local/src/hyprtrizone
+cd ~/.local/src/hyprtrizone
+git switch "hyprland-$(pacman -Q hyprland | awk '{ print $2 }' | cut -d- -f1)"
 make
 hyprctl plugin load "$PWD/hyprtrizoneLayout.so"
 hyprctl eval 'hl.config({ general = { layout = "hyprtrizone" } })'
@@ -35,12 +40,14 @@ until you apply the changes below.
 
 ## Install
 
-1. Build the plugin as above, then install it and the layout toggle script:
+1. Build the plugin as above. From the clone, install the plugin, the layout
+   toggle script, the configuration, and the update hook:
 
    ```sh
    install -Dm755 hyprtrizoneLayout.so ~/.local/lib/hyprtrizone/hyprtrizoneLayout.so
    install -Dm755 examples/omarchy/hyprtrizone-layout-toggle ~/.local/bin/hyprtrizone-layout-toggle
    cp examples/omarchy/hyprtrizone.lua ~/.config/hypr/hyprtrizone.lua
+   omarchy hook install post-update examples/omarchy/hyprtrizone-update
    ```
 
 2. Add this line at the end of `~/.config/hypr/hyprland.lua`, after Omarchy's
@@ -95,10 +102,19 @@ Omarchy shows notifications at the top right, over the top of the right column.
 
 ## Updates
 
-Rebuild and reinstall the plugin after every `hyprland` package update, then
-log out and back in. Until then, the old build refuses to load: the layout
-falls back to dwindle and `hyprctl configerrors` lists the
-`plugin.hyprtrizone` options.
+The [update hook](../examples/omarchy/hyprtrizone-update) runs after every
+`omarchy update`. It fetches `~/.local/src/hyprtrizone`, checks out the branch
+for the installed Hyprland, rebuilds, and installs the result. It does nothing
+when neither the plugin source nor a Hyprland package changed. Log out and back
+in after it reports a new build.
+
+If no branch supports the new Hyprland yet, the hook says so and keeps the old
+build. That build refuses to load into the new Hyprland: the layout falls back
+to dwindle and `hyprctl configerrors` lists the `plugin.hyprtrizone` options.
+Roll back to the snapshot taken before the update, or wait for the branch and
+run `bash ~/.config/omarchy/hooks/post-update.d/hyprtrizone-update` once it
+exists. A failure never stops the Omarchy update; the build log is
+`/tmp/hyprtrizone-update.log`.
 
 ## hyprpm
 
@@ -112,9 +128,12 @@ To use it anyway, install its build tools and add the plugin:
 ```sh
 sudo pacman -S --needed cmake meson
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone
+hyprpm add https://github.com/nyrda/hyprtrizone hyprland-0.56.2
 hyprpm enable hyprtrizone
 ```
+
+Use the branch for your Hyprland release. When an update changes the release,
+remove the repository with `hyprpm remove hyprtrizone` and add the new branch.
 
 Remove the `hl.plugin.load` line from `hyprtrizone.lua`, and add a start hook
 that loads the plugin and then reloads the configuration:
@@ -127,11 +146,17 @@ end)
 
 Hyprland does not load hyprpm plugins on its own. Each session starts in dwindle
 and with configuration errors for the plugin options until the hook has run.
-Run `hyprpm update` after every Hyprland update.
+Run `hyprpm update` after every Hyprland update, and use hyprpm instead of the
+update hook above.
 
 ## Uninstall
 
-Remove the `require("hypr.hyprtrizone")` line, delete
-`~/.config/hypr/hyprtrizone.lua`, `~/.local/bin/hyprtrizone-layout-toggle`, and
-`~/.local/lib/hyprtrizone/`, and delete
-`~/.local/state/omarchy/workspace-layouts/*.lua`. Then log out and back in.
+Remove the `require("hypr.hyprtrizone")` line, and delete these files:
+
+- `~/.config/hypr/hyprtrizone.lua`
+- `~/.config/omarchy/hooks/post-update.d/hyprtrizone-update`
+- `~/.local/bin/hyprtrizone-layout-toggle`
+- `~/.local/lib/hyprtrizone/` and `~/.local/src/hyprtrizone/`
+- `~/.local/state/omarchy/workspace-layouts/*.lua`
+
+Then log out and back in.

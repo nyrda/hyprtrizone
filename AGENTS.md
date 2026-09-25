@@ -19,6 +19,11 @@ isolated validation. `vm-demo` opens the graphical demo and `vm-test-interactive
 opens the test driver. `vm-demo-video` records the 30:9 feature tour into
 `docs/demo.mp4`; rerun it when a change affects what the tour shows.
 
+Each branch targets the Hyprland release in `HYPRLAND_VERSION`: `master` the newest,
+`hyprland-<version>` one release each. Commit fixes on `master` and cherry-pick them onto
+maintained release branches; never merge `master` into them. See "Hyprland versions and
+branches" in `docs/development.md`.
+
 `HYPRLAND_ROOT` defaults to `../Hyprland`. Use a matching checkout for API
 reference. The helper uses its Nix shell only if `hyprland.dev` is already built;
 otherwise it falls back to the nixpkgs pin in `flake.lock`.
