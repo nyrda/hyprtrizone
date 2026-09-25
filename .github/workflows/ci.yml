@@ -9,13 +9,34 @@ on:
 permissions:
   contents: read
 
+# Hyprland comes from its own flake at the pinned tag (nix/pkgs.nix). The first job builds it, or fetches it
+# from hyprland.cachix.org, and caches its closure under a key covering everything that decides that build.
+# It saves even when the tests fail, so each tag is compiled at most once.
 jobs:
+  hyprland:
+    name: Hyprland
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            extra-substituters = https://hyprland.cachix.org
+            extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: hyprland-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/pkgs.nix') }}
+          # Before saving, drop everything but the closure rooted by the out-link below.
+          gc-max-store-size-linux: 0
+      - name: Build Hyprland
+        run: nix build .#hyprland .#xdg-desktop-portal-hyprland --out-link "$HOME/hyprland" --print-build-logs
+
   check:
     name: Build and test
     runs-on: ubuntu-latest
-    # Hyprland comes from its own flake at the pinned tag. When hyprland.cachix.org lacks that release,
-    # it is compiled once here and reused by both VM checks.
-    timeout-minutes: 150
+    needs: hyprland
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Enable KVM
@@ -29,6 +50,10 @@ jobs:
             system-features = nixos-test benchmark big-parallel kvm
             extra-substituters = https://hyprland.cachix.org
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: hyprland-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/pkgs.nix') }}
+          save: false
       - name: Build plugin
         run: nix build .#hyprtrizone --print-build-logs
       - name: Layout integration
