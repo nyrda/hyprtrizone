@@ -37,7 +37,10 @@ struct SCachedNodeInfo {
     int                    orderInZone; // 0-based position within same-zone nodes
     WORKSPACEID            workspaceID;
     bool                   pairedWithNext = false; // only recorded for the removed target itself
+    uint64_t               restoreBatch   = 0;     // layout-switch snapshot; orderInZone is then relative to the whole snapshot
 };
+
+static uint64_t s_lastRestoreBatch = 0;
 
 struct SFollowWorkspaceMoveInfo {
     eHyprtrizoneZone zone;
@@ -1009,6 +1012,27 @@ void CHyprtrizoneAlgorithm::newTarget(SP<Layout::ITarget> target) {
 
             if (followWorkspaceRestore) {
                 insertNodeAtTopOfZone(newNodeIt, node.zone);
+            } else if (sameWorkspaceRestore && cached.restoreBatch != 0) {
+                // A layout switch hands over targets in Hyprland's order, not in zone order: place the node
+                // among the nodes restored from the same snapshot.
+                node.restoreBatch = cached.restoreBatch;
+                node.restoreOrder = cached.orderInZone;
+
+                auto insertBefore = m_nodes.end();
+                auto lastBefore   = m_nodes.end();
+                for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it) {
+                    if (it == newNodeIt || it->zone != node.zone || it->restoreBatch != node.restoreBatch)
+                        continue;
+                    if (it->restoreOrder > node.restoreOrder) {
+                        insertBefore = it;
+                        break;
+                    }
+                    lastBefore = it;
+                }
+                if (insertBefore == m_nodes.end() && lastBefore != m_nodes.end())
+                    insertBefore = std::next(lastBefore);
+                if (insertBefore != m_nodes.end() && insertBefore != newNodeIt)
+                    m_nodes.splice(insertBefore, m_nodes, newNodeIt);
             } else if (sameWorkspaceRestore) {
                 // Reposition node to match cached order within its zone for same-workspace restores.
                 int currentZoneIdx = 0;
@@ -1528,6 +1552,34 @@ void CHyprtrizoneAlgorithm::removeTarget(SP<Layout::ITarget> target) {
     const auto CURRENT_WORKSPACE = workspace();
     const auto CURRENT_WORKSPACE_ID = CURRENT_WORKSPACE ? CURRENT_WORKSPACE->m_id : WORKSPACE_INVALID;
 
+    // Hyprland drops a target from its own list before calling removeTarget, except when it hands every
+    // target to another layout (CAlgorithm::updateTiledAlgo). Snapshot the layout once, then leave the
+    // remaining nodes alone: promoting or unpairing them here would be cached as their state.
+    const auto PARENT = m_parent.lock();
+    if (m_layoutTeardown || (!m_internalRemoval && PARENT && PARENT->tiledTargets() >= m_nodes.size())) {
+        if (!m_layoutTeardown) {
+            m_layoutTeardown = true;
+
+            const auto BATCH  = ++s_lastRestoreBatch;
+            int        leftIdx = 0, centerIdx = 0, rightIdx = 0;
+            for (auto& nd : m_nodes) {
+                auto t = nd.target.lock();
+                auto w = t ? t->window() : nullptr;
+                if (!w)
+                    continue;
+
+                int& idx = (nd.zone == HYPRTRIZONE_ZONE_LEFT) ? leftIdx
+                         : (nd.zone == HYPRTRIZONE_ZONE_CENTER) ? centerIdx
+                                                                       : rightIdx;
+                const bool pairedWithNext = !nd.pairWithPrevious && getPairPartner(&nd);
+                s_zoneCacheByStableID[w->m_stableID] = {nd.zone, nd.pairWithPrevious, idx++, CURRENT_WORKSPACE_ID, pairedWithNext, BATCH};
+            }
+        }
+
+        m_nodes.remove(*pNode);
+        return;
+    }
+
     // Cache ALL remaining nodes' zone, pair state, and order for layout-swap restore.
     // Done for all nodes at once so order indices are correct before any removals shift positions.
     // Already-cached nodes (from a previous removeTarget in this batch) are skipped.
@@ -1779,10 +1831,14 @@ void CHyprtrizoneAlgorithm::recalculate(Layout::eRecalculateReason) {
 void CHyprtrizoneAlgorithm::swapTargets(SP<Layout::ITarget> a, SP<Layout::ITarget> b) {
     auto nodeA = getNodeFromTarget(a);
     auto nodeB = getNodeFromTarget(b);
-    if (!nodeA || !nodeB)
+    if (!nodeA && !nodeB)
         return;
 
-    std::swap(nodeA->target, nodeB->target);
+    // Grouping and ungrouping swap a node's target with one outside the layout; the node adopts it
+    if (nodeA)
+        nodeA->target = b;
+    if (nodeB)
+        nodeB->target = a;
 
     auto winA = a->window();
     auto winB = b->window();
@@ -2205,7 +2261,9 @@ Config::ErrorResult CHyprtrizoneAlgorithm::layoutMsg(const std::string_view& sv)
         if (!sourceTarget)
             return {};
 
+        m_internalRemoval = true;
         removeTarget(sourceTarget);
+        m_internalRemoval = false;
 
         // As with a drag, the half is judged on the target's box after the source has left the layout.
         auto       dropTarget = dropNode->target.lock();

@@ -76,6 +76,9 @@ class CHyprtrizoneAlgorithm : public Layout::ITiledAlgorithm {
         Vector2D               position;
         Vector2D               size;
         bool                   pairWithPrevious = false;
+        // Position in the layout-switch snapshot this node was restored from (0: not restored from one)
+        uint64_t               restoreBatch = 0;
+        int                    restoreOrder = 0;
 
         bool operator==(const SNodeData& rhs) const {
             return target.lock() == rhs.target.lock();
@@ -106,6 +109,10 @@ class CHyprtrizoneAlgorithm : public Layout::ITiledAlgorithm {
     float m_leftScrollOffset  = 0.f;
     float m_rightScrollOffset = 0.f;
     bool  m_forceWarps        = false;
+    // Set once Hyprland starts handing every target to another layout; this instance is then discarded
+    bool  m_layoutTeardown    = false;
+    // removeTarget called by this layout itself (dropon); the target is still in Hyprland's list then
+    bool  m_internalRemoval   = false;
     // Saved during removeTarget for getNextCandidate (node is already gone when it's called)
     WP<Layout::ITarget>    m_lastRemovedPairPartner;
     WP<Layout::ITarget>    m_lastRemovedNextInZone;

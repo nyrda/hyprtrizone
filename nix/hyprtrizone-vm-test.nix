@@ -429,6 +429,14 @@ in
     drop("tz-pair-a", "tz-pair-c", "left")
     hold("a and c to exchange: {e, c} | {a, d}", lambda: paired("tz-pair-e", "tz-pair-c") and paired("tz-pair-a", "tz-pair-d") and above("tz-pair-e", "tz-pair-a"))
 
+    # Grouping swaps the window's target for a group target outside the layout; the node has to adopt it.
+    center_box = (client("tz-center")["at"], client("tz-center")["size"])
+    focus("tz-center")
+    dispatch_lua("hl.dsp.group.toggle()")
+    hold("grouped tz-center to keep its center box", lambda: len(client("tz-center")["grouped"]) == 1 and client("tz-center")["size"][0] > 0 and client("tz-center")["at"][0] == center_box[0][0])
+    dispatch_lua("hl.dsp.group.toggle()")
+    hold("ungrouped tz-center to return to its box", lambda: not client("tz-center")["grouped"] and (client("tz-center")["at"], client("tz-center")["size"]) == center_box)
+
     # Runtime forms used by reload-plugin.sh, vm-demo and user binds under a Lua config
     # (hyprctl keyword and string dispatchers are legacy-parser only).
     def tiled_layout():
@@ -439,6 +447,7 @@ in
     hypr("eval " + shlex.quote('hl.config({ general = { layout = "hyprtrizone" } })'))
     wait_for("workspace to switch back to hyprtrizone", lambda: tiled_layout() == "hyprtrizone")
     hold("windows to be zoned again after the layout switch", lambda: client("tz-left")["at"][0] < client("tz-center")["at"][0] and in_right_zone(client("tz-pair-a")))
+    hold("rows and pairs to survive the layout switch: {e, c} | {a, d}", lambda: paired("tz-pair-e", "tz-pair-c") and paired("tz-pair-a", "tz-pair-d") and above("tz-pair-e", "tz-pair-a"))
 
     dispatch_lua('hl.dsp.exec_cmd("foot -T tz-exec sh -c \'sleep 900\'", { workspace = "2 silent" })')
     wait_for("exec_cmd window to open on workspace 2", lambda: client("tz-exec") is not None and client("tz-exec")["workspace"]["id"] == 2)
