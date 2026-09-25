@@ -3,7 +3,7 @@
 
   # Pinned to a nixpkgs revision whose Hyprland the plugin is ported to and tested against.
   # nix/hyprtrizone-vm-test.nix and nix/hyprtrizone-vm-demo.nix read this pin from flake.lock.
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/e554fab72f81915600f3f449b786fd9af40439a5";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/892e394af45ebd93800aa2e216e87f385ac39516";
 
   outputs =
     { self, nixpkgs }:

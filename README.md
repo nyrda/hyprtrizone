@@ -12,7 +12,7 @@ decide where a window goes.
 **[▶ Watch the feature tour](docs/demo.mp4)** (3600×1080, 80 seconds).
 It was recorded by `./dev.sh vm-demo-video` in a NixOS VM.
 
-This is a personal plugin. It is built and tested against **Hyprland 0.56.2**
+This is a personal plugin. It is built and tested against **Hyprland 0.56.1**
 with a Lua configuration. The Nix flake pins the compositor and the plugin
 together. Other Hyprland releases have their own `hyprland-<version>` branches.
 

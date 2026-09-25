@@ -1,6 +1,6 @@
 # Installation
 
-Hyprtrizone targets **Hyprland 0.56.2** with a Lua configuration. A Hyprland
+Hyprtrizone targets **Hyprland 0.56.1** with a Lua configuration. A Hyprland
 plugin only loads into the exact compositor build it was compiled against, so
 rebuild the plugin whenever Hyprland changes.
 
@@ -13,7 +13,7 @@ distribution, build the branch for the Hyprland you have installed.
 | [NixOS module](#nixos-module) | You run NixOS. The flake pins Hyprland and the plugin together. |
 | [Nix packages](#nix-packages-without-the-module) | You manage the Hyprland package yourself on Nix. |
 | [Manual build](#manual-build) | You want a local `.so`, for development or another distribution. |
-| [hyprpm](#hyprpm) | Your distribution provides Hyprland 0.56.2 and hyprpm. |
+| [hyprpm](#hyprpm) | Your distribution provides Hyprland 0.56.1 and hyprpm. |
 | [Omarchy](omarchy.md) | You run Omarchy 4. Covers the build, the configuration, and Omarchy's keybindings. |
 
 ## NixOS module
@@ -75,7 +75,7 @@ in {
 To build the plugin against your own package set instead, use
 `pkgs.callPackage "${inputs.hyprtrizone}/nix/package.nix" { }` or the flake's
 `overlays.default`, which adds `pkgs.hyprtrizone`. Your Hyprland must then
-provide the same plugin API as 0.56.2.
+provide the same plugin API as 0.56.1.
 
 ## Manual build
 
@@ -91,7 +91,7 @@ build dependencies in this order:
    `../Hyprland`), if its `hyprland.dev` output is already built.
 3. The Hyprland from the nixpkgs revision pinned in `flake.lock`.
 
-Without Nix, install a C++23 compiler, Make, pkg-config, the Hyprland 0.56.2
+Without Nix, install a C++23 compiler, Make, pkg-config, the Hyprland 0.56.1
 development files with their dependencies, and Lua 5.5 development files, then
 run `make`. Set `LUA_PKG` if your distribution uses an unusual pkg-config name
 for Lua.
