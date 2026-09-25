@@ -35,6 +35,8 @@ HYPRLAND_FOUND := $(shell pkg-config --modversion hyprland 2>/dev/null)
 all: $(TARGET)
 
 check-hyprland:
+	@pkg-config --print-errors --exists pixman-1 libdrm hyprland $(LUA_PKG) || \
+		{ echo "error: pkg-config cannot resolve Hyprland's build dependencies (see above)." >&2; exit 1; }
 ifneq ($(IGNORE_HYPRLAND_VERSION),1)
 	@if [ "$(HYPRLAND_FOUND)" != "$(HYPRLAND_TARGET)" ]; then \
 		echo "error: this branch targets Hyprland $(HYPRLAND_TARGET), pkg-config finds '$(HYPRLAND_FOUND)'." >&2; \
