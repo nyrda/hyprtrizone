@@ -26,11 +26,14 @@ jobs:
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
       - uses: nix-community/cache-nix-action@v7
         with:
-          primary-key: hyprland-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/pkgs.nix') }}
-          # Before saving, drop everything but the closure rooted by the out-link below.
+          primary-key: hyprland-v2-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/pkgs.nix') }}
+          # Before saving, drop everything but the closures rooted below. Bump v<n> when their contents change.
           gc-max-store-size-linux: 0
       - name: Build Hyprland
         run: nix build .#hyprland .#xdg-desktop-portal-hyprland --out-link "$HOME/hyprland" --print-build-logs
+      # The plugin needs Hyprland's dev output and its libraries' headers, which the runtime closure lacks.
+      - name: Build the plugin's build environment
+        run: nix develop --profile "$HOME/build-inputs" --command true
 
   check:
     name: Build and test
@@ -52,7 +55,7 @@ jobs:
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
       - uses: nix-community/cache-nix-action@v7
         with:
-          primary-key: hyprland-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/pkgs.nix') }}
+          primary-key: hyprland-v2-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/pkgs.nix') }}
           save: false
       - name: Build plugin
         run: nix build .#hyprtrizone --print-build-logs
