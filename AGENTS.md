@@ -26,8 +26,8 @@ branches" in `docs/development.md`.
 
 `HYPRLAND_ROOT` defaults to `../Hyprland`. Use a matching checkout for API
 reference. The helper uses its Nix shell only if `hyprland.dev` is already built;
-otherwise it falls back to the Hyprland flake tag pinned in `flake.lock` (`nix/pkgs.nix`).
-Nix builds use Hyprland's own flake and package set, never nixpkgs' Hyprland.
+otherwise it falls back to the nixpkgs revision pinned in `flake.lock` (`nix/pkgs.nix`).
+Nix builds use that nixpkgs' Hyprland, prebuilt on cache.nixos.org. Never compile Hyprland in CI.
 
 ## Files
 

@@ -1,11 +1,11 @@
 {
   system ? "x86_64-linux",
-  # Hyprland's package set at the tag locked in flake.lock.
+  # The nixpkgs locked in flake.lock.
   pkgs ? import ./pkgs.nix { inherit system; },
 }:
 
 let
-  # Hyprland's flake versions its package "<release>+date=<date>_<commit>".
+  # Hyprland's own flake versions its package "<release>+date=<date>_<commit>"; nixpkgs uses "<release>".
   targetVersion = pkgs.lib.fileContents ../HYPRLAND_VERSION;
   pinnedVersion = builtins.head (pkgs.lib.splitString "+" pkgs.hyprland.version);
 

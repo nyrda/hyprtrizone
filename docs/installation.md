@@ -19,27 +19,17 @@ distribution, build the branch for the Hyprland you have installed.
 ## NixOS module
 
 The flake provides the plugin, the matching Hyprland and portal packages, and a
-NixOS module for `x86_64-linux`. Hyprland and its portal come from Hyprland's
-own flake at the release tag the branch targets, not from nixpkgs.
+NixOS module for `x86_64-linux`. Hyprland and its portal come from a pinned
+nixpkgs revision whose Hyprland is the release the branch targets, so
+cache.nixos.org serves them prebuilt.
 
 ```nix
 # flake.nix
 inputs.hyprtrizone.url = "github:nyrda/hyprtrizone";
 ```
 
-Do not make its `hyprland` input follow another Hyprland input unless both
-point at the same release tag. It would build the plugin against a Hyprland it
-was not tested with.
-
-Hyprland's binary cache has some releases prebuilt. Without it, Nix compiles
-Hyprland from source. To use it, add it to your system configuration:
-
-```nix
-nix.settings = {
-  substituters = [ "https://hyprland.cachix.org" ];
-  trusted-public-keys = [ "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=" ];
-};
-```
+Do not make its `nixpkgs` input follow your own nixpkgs. It would build the
+plugin against a Hyprland it was not tested with.
 
 Pass `inputs` through `specialArgs` of `nixosSystem`, then enable the module:
 
@@ -101,7 +91,7 @@ build dependencies in this order:
 1. Development packages installed on the system, through `pkg-config`.
 2. The Nix dev shell of a Hyprland checkout at `HYPRLAND_ROOT` (default
    `../Hyprland`), if its `hyprland.dev` output is already built.
-3. Hyprland's own package set at the release tag pinned in `flake.lock`.
+3. The nixpkgs package set pinned in `flake.lock`.
 
 Without Nix, install a C++23 compiler, Make, pkg-config, the Hyprland 0.56.2
 development files with their dependencies, and Lua 5.5 development files, then
