@@ -9,36 +9,12 @@ on:
 permissions:
   contents: read
 
-# Hyprland comes from its own flake at the pinned tag (nix/pkgs.nix). The first job builds it, or fetches it
-# from hyprland.cachix.org, and caches its closure under a key covering everything that decides that build.
-# It saves even when the tests fail, so each tag is compiled at most once.
+# Hyprland comes from the pinned nixpkgs (nix/pkgs.nix), prebuilt on cache.nixos.org. CI never compiles it:
+# when the cache lacks the pinned build, the first step fails instead of compiling for an hour.
 jobs:
-  hyprland:
-    name: Hyprland
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
-        with:
-          extra_nix_config: |
-            extra-substituters = https://hyprland.cachix.org
-            extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
-      - uses: nix-community/cache-nix-action@v7
-        with:
-          primary-key: hyprland-v2-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/pkgs.nix') }}
-          # Before saving, drop everything but the closures rooted below. Bump v<n> when their contents change.
-          gc-max-store-size-linux: 0
-      - name: Build Hyprland
-        run: nix build .#hyprland .#xdg-desktop-portal-hyprland --out-link "$HOME/hyprland" --print-build-logs
-      # The plugin needs Hyprland's dev output and its libraries' headers, which the runtime closure lacks.
-      - name: Build the plugin's build environment
-        run: nix develop --profile "$HOME/build-inputs" --command true
-
   check:
     name: Build and test
     runs-on: ubuntu-latest
-    needs: hyprland
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -51,12 +27,13 @@ jobs:
         with:
           extra_nix_config: |
             system-features = nixos-test benchmark big-parallel kvm
-            extra-substituters = https://hyprland.cachix.org
-            extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
-      - uses: nix-community/cache-nix-action@v7
-        with:
-          primary-key: hyprland-v2-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/pkgs.nix') }}
-          save: false
+      - name: Fetch Hyprland from the binary cache
+        # --max-jobs 0 forbids local builds: everything has to be substituted.
+        run: |
+          nix build .#hyprland .#xdg-desktop-portal-hyprland --max-jobs 0 --no-link --print-build-logs || {
+            echo "::error::The pinned nixpkgs has no prebuilt Hyprland on cache.nixos.org. Pin a nixpkgs revision that does."
+            exit 1
+          }
       - name: Build plugin
         run: nix build .#hyprtrizone --print-build-logs
       - name: Layout integration
