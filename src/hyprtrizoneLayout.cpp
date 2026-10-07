@@ -12,7 +12,8 @@
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/state/ViewState.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
-#include <hyprland/src/desktop/view/Window.hpp>
+#include <hyprland/src/desktop/view/window/Window.hpp>
+#include <hyprland/src/desktop/view/window/WindowPresentation.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/managers/fullscreen/handler/FullscreenHandler.hpp>
@@ -35,7 +36,7 @@ struct SCachedNodeInfo {
     eHyprtrizoneZone zone;
     bool                   pairWithPrevious;
     int                    orderInZone; // 0-based position within same-zone nodes
-    WORKSPACEID            workspaceID;
+    std::string            workspaceAddress; // the workspace's addressableName(); empty for none
     bool                   pairedWithNext = false; // only recorded for the removed target itself
     uint64_t               restoreBatch   = 0;     // layout-switch snapshot; orderInZone is then relative to the whole snapshot
 };
@@ -44,7 +45,7 @@ static uint64_t s_lastRestoreBatch = 0;
 
 struct SFollowWorkspaceMoveInfo {
     eHyprtrizoneZone zone;
-    WORKSPACEID            sourceWorkspaceID;
+    std::string            sourceWorkspaceAddress;
 };
 
 static std::unordered_map<uint64_t, SCachedNodeInfo> s_zoneCacheByStableID;
@@ -135,7 +136,7 @@ void CHyprtrizoneAlgorithm::pruneCachedWindowState() {
     std::unordered_set<uint64_t> liveStableIDs;
     for (const auto& w : Desktop::windowState()->windows()) {
         if (w)
-            liveStableIDs.insert(w->m_stableID);
+            liveStableIDs.insert(w->metadata().stableID());
     }
 
     std::erase_if(s_zoneCacheByStableID, [&](const auto& entry) { return !liveStableIDs.contains(entry.first); });
@@ -517,9 +518,9 @@ bool CHyprtrizoneAlgorithm::prepareWindowForWorkspaceFollow(PHLWINDOW pWindow) c
         if (!t || t->window() != pWindow)
             continue;
 
-        s_followWorkspaceMovesByStableID[pWindow->m_stableID] = {
+        s_followWorkspaceMovesByStableID[pWindow->metadata().stableID()] = {
             .zone              = nd.zone,
-            .sourceWorkspaceID = currentWorkspace->m_id,
+            .sourceWorkspaceAddress = currentWorkspace->addressableName(),
         };
         return true;
     }
@@ -937,7 +938,7 @@ void CHyprtrizoneAlgorithm::applyNodeDataToWindow(SNodeData* pNode) {
         return;
     }
 
-    if (State::workspaceState()->isSpecial(PWINDOW->workspaceID())) {
+    if (PWINDOW->onSpecialWorkspace()) {
         auto scaledSize = pNode->size * getPluginFloat("plugin:hyprtrizone:special_scale_factor", 0.8F);
         auto scaledPos  = pNode->position + (pNode->size - scaledSize) / 2.f;
 
@@ -959,7 +960,7 @@ void CHyprtrizoneAlgorithm::applyNodeDataToWindow(SNodeData* pNode) {
         g_pHyprRenderer->damageWindow(PWINDOW);
     }
 
-    PWINDOW->updateWindowDecos();
+    PWINDOW->presentation().updateDecorations();
 }
 
 // ─── newTarget ─────────────────────────────────────────────────────────────
@@ -981,7 +982,7 @@ void CHyprtrizoneAlgorithm::newTarget(SP<Layout::ITarget> target) {
         liveStableIDs.reserve(Desktop::windowState()->windows().size());
         for (const auto& w : Desktop::windowState()->windows()) {
             if (w)
-                liveStableIDs.insert(w->m_stableID);
+                liveStableIDs.insert(w->metadata().stableID());
         }
 
         std::erase_if(s_zoneCacheByStableID, [&liveStableIDs](const auto& pair) {
@@ -991,21 +992,21 @@ void CHyprtrizoneAlgorithm::newTarget(SP<Layout::ITarget> target) {
 
     // Restore cached zone, pair state, and order from layout swap / workspace move
     if (auto w = target->window()) {
-        auto followIt = s_followWorkspaceMovesByStableID.find(w->m_stableID);
+        auto followIt = s_followWorkspaceMovesByStableID.find(w->metadata().stableID());
         if (followIt != s_followWorkspaceMovesByStableID.end()) {
             pendingFollowMove = followIt->second;
             s_followWorkspaceMovesByStableID.erase(followIt);
         }
 
-        auto cacheIt = s_zoneCacheByStableID.find(w->m_stableID);
+        auto cacheIt = s_zoneCacheByStableID.find(w->metadata().stableID());
         if (cacheIt != s_zoneCacheByStableID.end()) {
             const auto cached = cacheIt->second;
             s_zoneCacheByStableID.erase(cacheIt);
 
             const auto currentWorkspace = workspace();
-            const bool sameWorkspaceRestore   = currentWorkspace && cached.workspaceID == currentWorkspace->m_id;
-            const bool followWorkspaceRestore = pendingFollowMove.has_value() && currentWorkspace && currentWorkspace->m_id != pendingFollowMove->sourceWorkspaceID &&
-                cached.workspaceID == pendingFollowMove->sourceWorkspaceID;
+            const bool sameWorkspaceRestore   = currentWorkspace && cached.workspaceAddress == currentWorkspace->addressableName();
+            const bool followWorkspaceRestore = pendingFollowMove.has_value() && currentWorkspace && currentWorkspace->addressableName() != pendingFollowMove->sourceWorkspaceAddress &&
+                cached.workspaceAddress == pendingFollowMove->sourceWorkspaceAddress;
 
             node.zone             = followWorkspaceRestore ? pendingFollowMove->zone : cached.zone;
             node.pairWithPrevious = sameWorkspaceRestore ? cached.pairWithPrevious : false;
@@ -1204,8 +1205,8 @@ bool CHyprtrizoneAlgorithm::placeTargetOnWindow(SP<Layout::ITarget> target, PHLW
         return false;
 
     const auto currentWorkspace      = workspace();
-    const auto sourceCacheIt         = s_zoneCacheByStableID.find(PWINDOW->m_stableID);
-    const bool sourceOnThisWorkspace = sourceCacheIt != s_zoneCacheByStableID.end() && currentWorkspace && sourceCacheIt->second.workspaceID == currentWorkspace->m_id;
+    const auto sourceCacheIt         = s_zoneCacheByStableID.find(PWINDOW->metadata().stableID());
+    const bool sourceOnThisWorkspace = sourceCacheIt != s_zoneCacheByStableID.end() && currentWorkspace && sourceCacheIt->second.workspaceAddress == currentWorkspace->addressableName();
     const bool draggingLastCenter    = sourceOnThisWorkspace && sourceCacheIt->second.zone == HYPRTRIZONE_ZONE_CENTER && getNodesInZone(HYPRTRIZONE_ZONE_CENTER) == 0;
 
     auto ensureDraggedNode = [this, &target]() {
@@ -1411,7 +1412,7 @@ void CHyprtrizoneAlgorithm::movedTarget(SP<Layout::ITarget> target, std::optiona
     // Drag onto empty zone: place in the zone under the cursor
     if (isDrag && PWINDOW) {
         auto cursorZone = getZoneAtCursor();
-        const auto sourceCacheIt = s_zoneCacheByStableID.find(PWINDOW->m_stableID);
+        const auto sourceCacheIt = s_zoneCacheByStableID.find(PWINDOW->metadata().stableID());
         const bool draggingLastCenter = sourceCacheIt != s_zoneCacheByStableID.end() &&
                                         sourceCacheIt->second.zone == HYPRTRIZONE_ZONE_CENTER &&
                                         getNodesInZone(HYPRTRIZONE_ZONE_CENTER) == 0;
@@ -1459,21 +1460,21 @@ void CHyprtrizoneAlgorithm::movedTarget(SP<Layout::ITarget> target, std::optiona
 
     // Restore cached zone and order from layout swap / workspace move
     if (auto w = target->window()) {
-        auto followIt = s_followWorkspaceMovesByStableID.find(w->m_stableID);
+        auto followIt = s_followWorkspaceMovesByStableID.find(w->metadata().stableID());
         if (followIt != s_followWorkspaceMovesByStableID.end()) {
             pendingFollowMove = followIt->second;
             s_followWorkspaceMovesByStableID.erase(followIt);
         }
 
-        auto cacheIt = s_zoneCacheByStableID.find(w->m_stableID);
+        auto cacheIt = s_zoneCacheByStableID.find(w->metadata().stableID());
         if (cacheIt != s_zoneCacheByStableID.end()) {
             const auto cached = cacheIt->second;
             s_zoneCacheByStableID.erase(cacheIt);
 
             const auto currentWorkspace = workspace();
-            const bool sameWorkspaceRestore   = currentWorkspace && cached.workspaceID == currentWorkspace->m_id;
-            const bool followWorkspaceRestore = pendingFollowMove.has_value() && currentWorkspace && currentWorkspace->m_id != pendingFollowMove->sourceWorkspaceID &&
-                cached.workspaceID == pendingFollowMove->sourceWorkspaceID;
+            const bool sameWorkspaceRestore   = currentWorkspace && cached.workspaceAddress == currentWorkspace->addressableName();
+            const bool followWorkspaceRestore = pendingFollowMove.has_value() && currentWorkspace && currentWorkspace->addressableName() != pendingFollowMove->sourceWorkspaceAddress &&
+                cached.workspaceAddress == pendingFollowMove->sourceWorkspaceAddress;
 
             node.zone             = followWorkspaceRestore ? pendingFollowMove->zone : cached.zone;
             node.pairWithPrevious = sameWorkspaceRestore ? cached.pairWithPrevious : false;
@@ -1550,7 +1551,7 @@ void CHyprtrizoneAlgorithm::removeTarget(SP<Layout::ITarget> target) {
     }
 
     const auto CURRENT_WORKSPACE = workspace();
-    const auto CURRENT_WORKSPACE_ID = CURRENT_WORKSPACE ? CURRENT_WORKSPACE->m_id : WORKSPACE_INVALID;
+    const auto CURRENT_WORKSPACE_ADDRESS = CURRENT_WORKSPACE ? CURRENT_WORKSPACE->addressableName() : std::string{};
 
     // Hyprland drops a target from its own list before calling removeTarget, except when it hands every
     // target to another layout (CAlgorithm::updateTiledAlgo). Snapshot the layout once, then leave the
@@ -1572,7 +1573,7 @@ void CHyprtrizoneAlgorithm::removeTarget(SP<Layout::ITarget> target) {
                          : (nd.zone == HYPRTRIZONE_ZONE_CENTER) ? centerIdx
                                                                        : rightIdx;
                 const bool pairedWithNext = !nd.pairWithPrevious && getPairPartner(&nd);
-                s_zoneCacheByStableID[w->m_stableID] = {nd.zone, nd.pairWithPrevious, idx++, CURRENT_WORKSPACE_ID, pairedWithNext, BATCH};
+                s_zoneCacheByStableID[w->metadata().stableID()] = {nd.zone, nd.pairWithPrevious, idx++, CURRENT_WORKSPACE_ADDRESS, pairedWithNext, BATCH};
             }
         }
 
@@ -1592,7 +1593,7 @@ void CHyprtrizoneAlgorithm::removeTarget(SP<Layout::ITarget> target) {
             auto w = t->window();
             if (!w)
                 continue;
-            if (s_zoneCacheByStableID.contains(w->m_stableID)) {
+            if (s_zoneCacheByStableID.contains(w->metadata().stableID())) {
                 if (nd.zone == HYPRTRIZONE_ZONE_LEFT) leftIdx++;
                 else if (nd.zone == HYPRTRIZONE_ZONE_CENTER) centerIdx++;
                 else rightIdx++;
@@ -1601,7 +1602,7 @@ void CHyprtrizoneAlgorithm::removeTarget(SP<Layout::ITarget> target) {
             int& idx = (nd.zone == HYPRTRIZONE_ZONE_LEFT) ? leftIdx
                      : (nd.zone == HYPRTRIZONE_ZONE_CENTER) ? centerIdx
                                                                    : rightIdx;
-            s_zoneCacheByStableID[w->m_stableID] = {nd.zone, nd.pairWithPrevious, idx, CURRENT_WORKSPACE_ID};
+            s_zoneCacheByStableID[w->metadata().stableID()] = {nd.zone, nd.pairWithPrevious, idx, CURRENT_WORKSPACE_ADDRESS};
             idx++;
         }
     }
@@ -1619,7 +1620,7 @@ void CHyprtrizoneAlgorithm::removeTarget(SP<Layout::ITarget> target) {
 
         // Pair membership is recorded here rather than derived from other windows' entries, which may be older.
         const bool pairedWithNext = !pNode->pairWithPrevious && getPairPartner(pNode);
-        s_zoneCacheByStableID[PWINDOW->m_stableID] = {pNode->zone, pNode->pairWithPrevious, orderInZone, CURRENT_WORKSPACE_ID, pairedWithNext};
+        s_zoneCacheByStableID[PWINDOW->metadata().stableID()] = {pNode->zone, pNode->pairWithPrevious, orderInZone, CURRENT_WORKSPACE_ADDRESS, pairedWithNext};
     }
 
     // Save focus candidates for getNextCandidate (node is already gone when it's called)
@@ -1948,7 +1949,7 @@ void CHyprtrizoneAlgorithm::resizeTarget(const Vector2D& pixResize, SP<Layout::I
     if (!pNode) {
         *PWINDOW->sizeAnimation() = Vector2D(std::max((PWINDOW->sizeAnimation()->goal() + pixResize).x, 20.0),
                                               std::max((PWINDOW->sizeAnimation()->goal() + pixResize).y, 20.0));
-        PWINDOW->updateWindowDecos();
+        PWINDOW->presentation().updateDecorations();
         return;
     }
 
@@ -2450,7 +2451,7 @@ std::optional<Vector2D> CHyprtrizoneAlgorithm::predictSizeForNewTarget() {
 
 // ─── renderStackIndicators ─────────────────────────────────────────────────
 
-void CHyprtrizoneAlgorithm::renderStackIndicators(PHLMONITOR PMONITOR) {
+void CHyprtrizoneAlgorithm::renderStackIndicators(PHLMONITOR PMONITOR, Render::CRenderContext& ctx) {
     if (!PMONITOR)
         return;
 
@@ -2462,7 +2463,7 @@ void CHyprtrizoneAlgorithm::renderStackIndicators(PHLMONITOR PMONITOR) {
 
     Render::GL::g_pHyprOpenGL->setCapStatus(GL_STENCIL_TEST, false);
     Render::GL::g_pHyprOpenGL->setCapStatus(GL_SCISSOR_TEST, false);
-    Render::GL::g_pHyprOpenGL->scissor(nullptr);
+    Render::GL::g_pHyprOpenGL->scissor(ctx, static_cast<const pixman_box32*>(nullptr));
 
     const auto indicatorWidth       = getPluginInt("plugin:hyprtrizone:indicator_width", 112);
     const auto indicatorHeight      = getPluginInt("plugin:hyprtrizone:indicator_height", 40);
@@ -2532,7 +2533,7 @@ void CHyprtrizoneAlgorithm::renderStackIndicators(PHLMONITOR PMONITOR) {
             badge.scale(PMONITOR->m_scale);
             badge.round();
 
-            Render::GL::g_pHyprOpenGL->renderRect(badge, CHyprColor{0.08f, 0.08f, 0.08f, badgeAlpha}, {.damage = &FULL_REGION, .round = (int)(12 * PMONITOR->m_scale)});
+            Render::GL::g_pHyprOpenGL->renderRect(ctx, badge, CHyprColor{0.08f, 0.08f, 0.08f, badgeAlpha}, {.damage = &FULL_REGION, .round = (int)(12 * PMONITOR->m_scale)});
 
             const auto textTex = g_pHyprRenderer->renderText(std::to_string(value), textColor, std::max(8, (int)(fontSize * PMONITOR->m_scale)), false, "", 0, 900);
             if (!textTex)
@@ -2540,7 +2541,7 @@ void CHyprtrizoneAlgorithm::renderStackIndicators(PHLMONITOR PMONITOR) {
 
             CBox textBox = {badge.x + (badge.w - textTex->m_size.x) / 2.f, badge.y + (badge.h - textTex->m_size.y) / 2.f, textTex->m_size.x, textTex->m_size.y};
             textBox.round();
-            Render::GL::g_pHyprOpenGL->renderTexture(textTex, textBox, {.damage = &FULL_REGION});
+            Render::GL::g_pHyprOpenGL->renderTexture(ctx, textTex, textBox, {.damage = &FULL_REGION});
         };
 
         drawBadge(contentBox.y + badgePad, hiddenAbove);

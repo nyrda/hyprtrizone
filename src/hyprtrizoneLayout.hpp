@@ -52,7 +52,7 @@ class CHyprtrizoneAlgorithm : public Layout::ITiledAlgorithm {
     virtual std::optional<Vector2D>          predictSizeForNewTarget() override;
 
     // For indicator rendering (called from render callback)
-    void renderStackIndicators(PHLMONITOR pMonitor);
+    void renderStackIndicators(PHLMONITOR pMonitor, Render::CRenderContext& ctx);
 
     // Global registry for render callback access
     static std::set<CHyprtrizoneAlgorithm*>& instances();
