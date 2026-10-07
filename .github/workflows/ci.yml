@@ -11,22 +11,17 @@ permissions:
 
 # Hyprland comes from its own flake at the pinned commit (nix/pkgs.nix), prebuilt on hyprland.cachix.org. CI never
 # compiles it: when the cache lacks the pinned build, the first step fails instead of compiling for an hour.
+# The VM tests are too slow for CI; they run locally with ./dev.sh vm-test and vm-demo-screenshot. CI only evaluates them.
 jobs:
   check:
     name: Build and test
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
       - uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
-            system-features = nixos-test benchmark big-parallel kvm
             extra-substituters = https://hyprland.cachix.org
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
       - name: Fetch Hyprland from the binary caches
@@ -38,7 +33,7 @@ jobs:
           }
       - name: Build plugin
         run: nix build .#hyprtrizone --print-build-logs
-      - name: Layout integration
-        run: nix build .#checks.x86_64-linux.vm-test --print-build-logs
-      - name: Quickshell demo
-        run: nix build .#checks.x86_64-linux.demo --print-build-logs
+      - name: Evaluate the VM tests
+        run: |
+          nix eval --raw .#checks.x86_64-linux.vm-test.drvPath
+          nix eval --raw .#checks.x86_64-linux.demo.drvPath
