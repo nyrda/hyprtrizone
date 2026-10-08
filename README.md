@@ -58,7 +58,7 @@ The demo VM binds these keys:
 | `Super+Shift+Arrows` | Move the window between columns or rows |
 | `Super+Left drag` | Drag a window; drop it onto another to pair or exchange |
 | `Super+Right drag` | Resize |
-| `Super+Wheel` | Scroll the focused side stack, or the right one from the center |
+| `Super+Wheel` | Scroll the side stack under the pointer; over the center, the focused side or the right one |
 | `Super+1/2/3` | Switch workspace |
 | `Super+Shift+F7` | Reopen the demo windows |
 | `Super+Shift+F8/F9` | Toggle pairing on the left/right side |
@@ -67,7 +67,7 @@ The demo VM binds these keys:
 
 The layout settings come from [`examples/hyprtrizone-demo.lua`](examples/hyprtrizone-demo.lua),
 which also runs in a normal session. The VM adds the general Hyprland binds;
-the example file only binds the wheel and the F-keys.
+the example file enables wheel scrolling and binds the F-keys.
 
 ## Install
 
@@ -99,11 +99,10 @@ hl.config({
         master_factor = 0.5,
         side_bias = "right",
         side_visible_windows = 3,
+        wheel_scroll_mods = "SUPER",
     } },
 })
 
-hl.bind("SUPER + mouse_up", hl.dsp.layout("scroll up"))
-hl.bind("SUPER + mouse_down", hl.dsp.layout("scroll down"))
 hl.bind("SUPER + SPACE", hl.dsp.layout("swapwithmaster"))
 ```
 

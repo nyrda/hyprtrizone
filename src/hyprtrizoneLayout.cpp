@@ -17,7 +17,11 @@
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/managers/fullscreen/handler/FullscreenHandler.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/KeybindManager.hpp>
+#include <hyprland/src/managers/SessionLockManager.hpp>
 #include <hyprland/src/pointer/PointerController.hpp>
+#include <hyprland/src/protocols/InputCapture.hpp>
+#include <hyprland/src/protocols/ShortcutsInhibit.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/render/decorations/CHyprGroupBarDecoration.hpp>
@@ -195,6 +199,54 @@ CHyprtrizoneAlgorithm* CHyprtrizoneAlgorithm::activeOnMonitor(PHLMONITOR pMonito
     }
 
     return nullptr;
+}
+
+bool CHyprtrizoneAlgorithm::handleWheelEvent(const IPointer::SAxisEvent& event) {
+    if (event.source != WL_POINTER_AXIS_SOURCE_WHEEL || event.axis != WL_POINTER_AXIS_VERTICAL_SCROLL || event.delta == 0.0)
+        return false;
+
+    const std::string modsConfig = getPluginString("plugin:hyprtrizone:wheel_scroll_mods");
+    if (modsConfig.empty())
+        return false;
+
+    const auto mods = g_pKeybindManager->stringToModMask(modsConfig);
+    if (mods == 0 || g_pInputManager->getModsFromAllKBs() != mods)
+        return false;
+
+    // Leave the event alone where Hyprland would not run a bind either.
+    static CConfigValue<Config::INTEGER> disableKeybindGrabbing{"binds:disable_keybind_grabbing"};
+    if (g_pSessionLockManager->isSessionLocked() || PROTO::inputCapture->isCaptured() || !g_pKeybindManager->getCurrentSubmap().name.empty() ||
+        (!*disableKeybindGrabbing && PROTO::shortcutsInhibit->isInhibited()))
+        return false;
+
+    if (!CHyprtrizoneGlobals::isScrollingEnabled())
+        return false;
+
+    const auto cursor  = g_pInputManager->getMouseCoordsInternal();
+    const auto monitor = State::monitorState()->query().vec(cursor).run();
+    if (!monitor)
+        return false;
+
+    // An open special workspace covers the regular one.
+    const auto workspace = monitor->m_activeSpecialWorkspace ? monitor->m_activeSpecialWorkspace : monitor->m_activeWorkspace;
+    if (!workspace)
+        return false;
+
+    const auto algoIt = std::ranges::find_if(instances(), [&](auto* algo) { return algo && algo->workspace() == workspace; });
+    if (algoIt == instances().end())
+        return false;
+
+    auto* algo = *algoIt;
+    auto  zone = algo->getZoneAtCursor();
+    if (zone == HYPRTRIZONE_ZONE_CENTER)
+        zone = algo->getActiveZone();
+    if (zone == HYPRTRIZONE_ZONE_CENTER)
+        zone = algo->getBiasZone();
+
+    // A high-resolution wheel reports fractions of a 120-unit notch; a notch is 15 units of delta.
+    const float notches = event.deltaDiscrete != 0 ? std::abs(event.deltaDiscrete) / 120.f : (float)std::abs(event.delta) / 15.f;
+    algo->wheelScrollZone(zone, event.delta > 0.0 ? 1.f : -1.f, notches);
+    return true;
 }
 
 int CHyprtrizoneAlgorithm::getZoneHeaderHeight(eHyprtrizoneZone zone) const {
@@ -411,31 +463,75 @@ void CHyprtrizoneAlgorithm::snapZoneToEnd(eHyprtrizoneZone zone) {
     setSideScrollOffset(zone, std::max(0.f, metrics.contentHeight - (float)contentBox.h));
 }
 
-void CHyprtrizoneAlgorithm::scrollZone(eHyprtrizoneZone zone, float direction, float amountMult) {
+// Moves a side stack by a signed number of rows, at least one pixel, times amountMult.
+// Returns false when the offset stopped at either end.
+bool CHyprtrizoneAlgorithm::scrollZoneByRows(eHyprtrizoneZone zone, float rows, float amountMult) {
     if (zone != HYPRTRIZONE_ZONE_LEFT && zone != HYPRTRIZONE_ZONE_RIGHT)
-        return;
+        return false;
 
     if (!CHyprtrizoneGlobals::isScrollingEnabled())
-        return;
+        return false;
 
     const auto contentBox = getZoneContentBox(zone);
     if (contentBox.h <= 0)
-        return;
+        return false;
 
-    const auto rows = buildSideRows(zone);
-    if (rows.empty())
-        return;
+    const auto sideRows = buildSideRows(zone);
+    if (sideRows.empty())
+        return false;
 
-    const auto  metrics    = getSideLayoutMetrics(zone, rows, contentBox.h);
-    const float slotHeight = metrics.slotHeight;
-    const float maxScroll  = std::max(0.f, metrics.contentHeight - (float)contentBox.h);
+    const auto  metrics   = getSideLayoutMetrics(zone, sideRows, contentBox.h);
+    const float maxScroll = std::max(0.f, metrics.contentHeight - (float)contentBox.h);
 
-    const float scrollStep =
-        std::max(1.f, slotHeight * std::max(0.05f, getPluginFloat("plugin:hyprtrizone:scroll_step", 0.35F))) * std::max(0.01f, amountMult);
-    const float offset     = getSideScrollOffset(zone);
-    setSideScrollOffset(zone, std::clamp(offset + scrollStep * direction, 0.f, maxScroll));
+    const float distance = std::max(1.f, metrics.slotHeight * std::abs(rows)) * amountMult;
+    const float wanted   = getSideScrollOffset(zone) + (rows < 0.f ? -distance : distance);
+    const float offset   = std::clamp(wanted, 0.f, maxScroll);
+    setSideScrollOffset(zone, offset);
 
     recalculate();
+    return offset == wanted;
+}
+
+void CHyprtrizoneAlgorithm::scrollZone(eHyprtrizoneZone zone, float direction, float amountMult) {
+    scrollZoneByRows(zone, direction * std::max(0.05f, getPluginFloat("plugin:hyprtrizone:scroll_step", 0.35F)), std::max(0.01f, amountMult));
+}
+
+bool CHyprtrizoneAlgorithm::isZoneMoving(eHyprtrizoneZone zone) const {
+    for (const auto& nd : m_nodes) {
+        if (nd.zone != zone)
+            continue;
+
+        const auto target = nd.target.lock();
+        const auto window = target ? target->window() : nullptr;
+        if (window && window->positionAnimation()->isBeingAnimated())
+            return true;
+    }
+
+    return false;
+}
+
+void CHyprtrizoneAlgorithm::wheelScrollZone(eHyprtrizoneZone zone, float direction, float notches) {
+    // Ticks of a fast spin arrive while the stack still moves towards the previous target. Each of them
+    // extends the target from there, and the step grows with the number of such ticks in a row.
+    constexpr float MAX_ACCELERATION = 4.f;
+    constexpr auto  STREAK_TIMEOUT   = std::chrono::milliseconds(1000);
+
+    auto&      streak = zone == HYPRTRIZONE_ZONE_LEFT ? m_leftWheelStreak : m_rightWheelStreak;
+    const auto now    = std::chrono::steady_clock::now();
+    // Any other scroll since the previous notch (command, focus, new window) also ends the streak.
+    if (streak.direction != direction || now - streak.lastTick > STREAK_TIMEOUT || getSideScrollOffset(zone) != streak.offset || !isZoneMoving(zone))
+        streak.notches = 0.f;
+
+    const float acceleration = std::max(0.f, getPluginFloat("plugin:hyprtrizone:wheel_scroll_acceleration", 0.5F));
+    const float multiplier   = std::min(MAX_ACCELERATION, 1.f + acceleration * streak.notches);
+    const float step         = std::max(0.05f, getPluginFloat("plugin:hyprtrizone:wheel_scroll_step", 0.5F));
+
+    const bool  unclamped = scrollZoneByRows(zone, direction * step, notches * multiplier);
+
+    streak.direction = direction;
+    streak.offset    = getSideScrollOffset(zone);
+    streak.notches   = unclamped ? streak.notches + notches : 0.f;
+    streak.lastTick  = now;
 }
 
 void CHyprtrizoneAlgorithm::focusWindowInSideStack(SP<Layout::ITarget> target) {

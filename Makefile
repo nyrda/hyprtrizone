@@ -13,7 +13,8 @@ DEP := $(OBJ:.o=.d)
 # Lua 5.5 has a different pkg-config name on every distro; same candidates as Hyprland's own build.
 LUA_PKG ?= $(firstword $(foreach p,lua55 lua5.5 lua-55 lua-5.5 lua,$(shell pkg-config --exists $(p) 2>/dev/null && echo $(p))))
 
-PKG_CONFIG_CFLAGS := $(shell pkg-config --cflags pixman-1 libdrm hyprland $(LUA_PKG))
+# Hyprland's input capture header includes libeis.h, which hyprland.pc does not list.
+PKG_CONFIG_CFLAGS := $(shell pkg-config --cflags pixman-1 libdrm hyprland libeis-1.0 $(LUA_PKG))
 PKG_CONFIG_LIBS := $(shell pkg-config --libs $(LUA_PKG))
 
 CXX ?= c++
@@ -35,7 +36,7 @@ HYPRLAND_FOUND := $(shell pkg-config --modversion hyprland 2>/dev/null)
 all: $(TARGET)
 
 check-hyprland:
-	@pkg-config --print-errors --exists pixman-1 libdrm hyprland $(LUA_PKG) || \
+	@pkg-config --print-errors --exists pixman-1 libdrm hyprland libeis-1.0 $(LUA_PKG) || \
 		{ echo "error: pkg-config cannot resolve Hyprland's build dependencies (see above)." >&2; exit 1; }
 ifneq ($(IGNORE_HYPRLAND_VERSION),1)
 	@if [ "$(HYPRLAND_FOUND)" != "$(HYPRLAND_TARGET)" ]; then \

@@ -5,7 +5,7 @@
 #
 #   pkgs.callPackage "${inputs.hyprtrizone}/nix/package.nix" { }
 #
-# Dependencies include the development files required by hyprland.pc and Lua.
+# Dependencies include the development files required by hyprland.pc, libei and Lua.
 {
   lib,
   stdenv,
@@ -20,6 +20,7 @@
   hyprutils,
   libGL,
   libdrm,
+  libei,
   libinput,
   libxkbcommon,
   lua5_5,
@@ -68,6 +69,8 @@ stdenv.mkDerivation {
     hyprutils
     libGL
     libdrm
+    # Included through Hyprland's input capture header; hyprland.pc does not list it.
+    libei
     libinput
     libxkbcommon
     lua5_5

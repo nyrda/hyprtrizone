@@ -94,9 +94,9 @@ build dependencies in this order:
 3. The nixpkgs package set pinned in `flake.lock`.
 
 Without Nix, install a C++23 compiler, Make, pkg-config, the Hyprland 0.56.2
-development files with their dependencies, and Lua 5.5 development files, then
-run `make`. Set `LUA_PKG` if your distribution uses an unusual pkg-config name
-for Lua.
+development files with their dependencies, and the libei and Lua 5.5
+development files, then run `make`. Set `LUA_PKG` if your distribution uses an
+unusual pkg-config name for Lua.
 
 The build stops when `pkg-config` finds a different Hyprland than the branch
 targets (`HYPRLAND_VERSION`). Switch to the matching `hyprland-<version>` branch.
@@ -114,8 +114,8 @@ hl.config({ general = { layout = "hyprtrizone" } })
 hyprpm builds plugins against a system-managed Hyprland. For a Nix-managed
 Hyprland, use the module or packages above. hyprpm needs `git`, a C++23
 compiler, `pkg-config`, `cmake`, `cpio`, and `meson`; the plugin build also
-needs the Lua 5.5 development files. Some distributions ship hyprpm as a
-separate package. On Arch Linux and CachyOS:
+needs the libei and Lua 5.5 development files. Some distributions ship hyprpm
+as a separate package. On Arch Linux and CachyOS:
 
 ```sh
 sudo pacman -S --needed hyprland hyprpm base-devel git

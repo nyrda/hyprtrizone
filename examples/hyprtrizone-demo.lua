@@ -24,6 +24,7 @@ hl.config({
             left_side_visible_windows = 2,
             right_side_visible_windows = 3,
             scroll_step = 0.65,
+            wheel_scroll_mods = "SUPER",
 
             pairing_left = true,
             pairing_right = true,
@@ -62,9 +63,6 @@ rule({ name = "hyprtrizone-demo-pair-right", match = { title = [[^TRIZONE_RIGHT_
 rule({ name = "hyprtrizone-demo-pair-right-mark", match = { title = [[^TRIZONE_RIGHT_PAIR_.*]] }, tag = "+pairdemo" })
 
 local shift = "SUPER + SHIFT"
-
-hl.bind("SUPER + mouse_up", hl.dsp.layout("scroll up"))
-hl.bind("SUPER + mouse_down", hl.dsp.layout("scroll down"))
 
 hl.bind(shift .. " + F7", hl.dsp.exec_cmd(demo_dir .. "/populate-demo.sh"))
 hl.bind(shift .. " + F8", hl.dsp.layout("pairingleft toggle"))
