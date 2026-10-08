@@ -1,15 +1,16 @@
 {
   description = "hyprtrizone: three-zone Hyprland layout with scrolling side stacks";
 
-  # Hyprland's own flake at the release this branch targets (HYPRLAND_VERSION). Everything else, including
-  # nixpkgs for the test VMs, comes from its package set (nix/pkgs.nix). Do not make it follow another nixpkgs.
-  inputs.hyprland.url = "github:hyprwm/Hyprland/v0.56.2";
+  # The nixpkgs revision whose Hyprland is the release this branch targets (HYPRLAND_VERSION), prebuilt on
+  # cache.nixos.org. The plugin, Hyprland, and the test VMs all come from it (nix/pkgs.nix). Do not make it
+  # follow another nixpkgs: that changes the Hyprland the plugin is built against.
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/39ad350a0602fa0a58a544344e3e9187526ea45c";
 
   outputs =
-    { self, hyprland }:
+    { self, nixpkgs }:
     let
       system = "x86_64-linux";
-      pkgs = import ./nix/pkgs.nix { inherit system hyprland; };
+      pkgs = import ./nix/pkgs.nix { inherit system nixpkgs; };
       vmTest = import ./nix/hyprtrizone-vm-test.nix { inherit system pkgs; };
       vmDemo = import ./nix/hyprtrizone-vm-demo.nix { inherit system pkgs; };
     in

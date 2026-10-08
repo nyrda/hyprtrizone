@@ -147,7 +147,7 @@ Each branch targets one Hyprland release, named in `HYPRLAND_VERSION`:
 Every supported release has its own branch; the newest one points at the same
 commit as `master` until `master` moves on. The Makefile stops when
 `pkg-config` finds a different Hyprland, the Nix test fails to evaluate when
-`flake.lock` pins a different one, and CI runs on `master` and every
+the nixpkgs in `flake.lock` has a different one, and CI runs on `master` and every
 `hyprland-*` branch. Distribution users build the branch for their installed
 Hyprland; the [Omarchy update hook](omarchy.md#updates) picks it automatically.
 
@@ -179,9 +179,10 @@ ship its release. Omarchy's stable channel runs about a month behind Arch.
 
 1. Branch the current state: `git branch hyprland-<current version> master`,
    unless that branch already points there.
-2. On `master`, point the `hyprland` input in `flake.nix` at the new release
-   tag (`github:hyprwm/Hyprland/v<version>`), run `nix flake update hyprland`,
-   and write the new version to `HYPRLAND_VERSION`.
+2. On `master`, point the `nixpkgs` input in `flake.nix` at a nixpkgs
+   revision whose `hyprland` is the new release
+   (`github:NixOS/nixpkgs/<commit>`), run `nix flake lock`, and write the new
+   version to `HYPRLAND_VERSION`.
 3. Port the plugin. A matching checkout at `HYPRLAND_ROOT` helps with API
    reference. `make IGNORE_HYPRLAND_VERSION=1` builds against other headers
    while porting.
@@ -193,10 +194,11 @@ ship its release. Omarchy's stable channel runs about a month behind Arch.
 A release that needs no code changes, typically a patch release, still gets its
 own branch with its own pin and version file, so its tests run against it.
 
-The Nix builds and tests use Hyprland's own flake at the tag, the same
-package Hyprland publishes, built with its pinned nixpkgs and compiler
-(`nix/pkgs.nix`). A tag is testable as soon as it is published. When
-`hyprland.cachix.org` does not have a release, Nix compiles Hyprland once.
+The Nix builds and tests use the Hyprland package from the pinned nixpkgs
+(`nix/pkgs.nix`), which cache.nixos.org serves prebuilt. Pick a revision
+Hydra has built, for example the head of `nixos-unstable`. CI never compiles
+Hyprland: its first step fetches it with local builds disabled and fails when
+the cache does not have it.
 
 Keep behavior changes out of dependency ports. `setPositionGlobal` already
 applies Hyprland's gaps, and pairing must stay local to the insertion point.
