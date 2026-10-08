@@ -58,6 +58,9 @@ heights are clamped between zero and the column height.
 | `left_side_visible_windows` | int | `0` | Left-side override. `0` or less uses `side_visible_windows`. |
 | `right_side_visible_windows` | int | `0` | Right-side override. `0` or less uses `side_visible_windows`. |
 | `scroll_step` | float | `0.35` | Distance per scroll command as a fraction of one row. At least `0.05`. |
+| `wheel_scroll_mods` | string | `""` | Modifiers that make the mouse wheel scroll a side stack, written like in a bind, for example `"SUPER"`. Empty turns wheel scrolling off. |
+| `wheel_scroll_step` | float | `0.5` | Distance per wheel notch as a fraction of one row. At least `0.05`. |
+| `wheel_scroll_acceleration` | float | `0.5` | Step growth per notch while the stack is still moving. `0` keeps every notch the same. |
 
 With fewer rows than the visible count, rows grow to fill the column. Once a
 stack overflows, a row is the column height divided by the visible count, and
@@ -66,6 +69,28 @@ not change the total height of the stack.
 
 Each workspace keeps its own scroll offsets. The `togglescrolling` and
 `setscrolling` commands override `scrolling_enabled` for every workspace.
+
+### Wheel scrolling
+
+While exactly the `wheel_scroll_mods` modifiers are held, the mouse wheel
+scrolls the side stack under the pointer. Over the center it scrolls the
+focused side, or `side_bias` while the center has focus. The plugin handles
+every notch itself and none reach the window under the pointer, however fast
+the wheel turns. High-resolution wheels scroll in proportion to each fraction
+of a notch.
+
+A notch that arrives while the stack is still moving from the previous one
+continues from that target, and its step grows by `wheel_scroll_acceleration`
+per notch, up to four times `wheel_scroll_step`. Changing direction, a pause of
+a second, reaching either end, or any other scroll of the stack starts over at
+one step. Without window animations every notch moves one step.
+
+Wheel scrolling follows the conditions of a bind: it is inactive inside a
+submap, on a locked session, during input capture, and while an application
+inhibits shortcuts. Prefer it over `mouse_up` and `mouse_down` binds to the
+`scroll` command: Hyprland runs one wheel bind per `binds:scroll_event_delay`
+(300 ms by default) and passes the notches in between to the window under the
+pointer.
 
 ## Tags
 
@@ -139,8 +164,8 @@ Commands go through Hyprland's layout dispatcher. Bind them with
 `hl.dsp.layout`:
 
 ```lua
-hl.bind("SUPER + mouse_up", hl.dsp.layout("scroll up"))
-hl.bind("SUPER + mouse_down", hl.dsp.layout("scroll down"))
+hl.bind("SUPER + SHIFT + Page_Up", hl.dsp.layout("scroll up"))
+hl.bind("SUPER + SHIFT + Page_Down", hl.dsp.layout("scroll down"))
 hl.bind("SUPER + SPACE", hl.dsp.layout("swapwithmaster"))
 ```
 

@@ -15,6 +15,8 @@ hl.config({
             master_factor = 0.5,
             side_bias = "right",
             side_visible_windows = 3,
+            -- SUPER + wheel stays Omarchy's workspace scrolling.
+            wheel_scroll_mods = "SUPER + SHIFT",
 
             -- Omarchy tags terminals with "terminal" (default/hypr/apps/terminals.lua).
             pairing_right = true,
@@ -36,8 +38,5 @@ end
 rebind("SUPER + J", "Swap window with center", hl.dsp.layout("swapwithmaster"))
 rebind("SUPER + L", "Toggle workspace layout", os.getenv("HOME") .. "/.local/bin/hyprtrizone-layout-toggle")
 
--- SUPER + wheel stays Omarchy's workspace scrolling.
-o.bind("SUPER + SHIFT + mouse_up", "Scroll side stack up", hl.dsp.layout("scroll up"))
-o.bind("SUPER + SHIFT + mouse_down", "Scroll side stack down", hl.dsp.layout("scroll down"))
 o.bind("SUPER + SHIFT + Page_Up", "Scroll side stack up", hl.dsp.layout("scroll up"))
 o.bind("SUPER + SHIFT + Page_Down", "Scroll side stack down", hl.dsp.layout("scroll down"))

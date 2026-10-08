@@ -40,15 +40,18 @@ namespace {
         CHyprSignalListener render;
         CHyprSignalListener workspaceActive;
         CHyprSignalListener windowDestroy;
+        CHyprSignalListener mouseAxis;
 
         void reset() {
             disarmSignalListener(render);
             disarmSignalListener(workspaceActive);
             disarmSignalListener(windowDestroy);
+            disarmSignalListener(mouseAxis);
 
             render.reset();
             workspaceActive.reset();
             windowDestroy.reset();
+            mouseAxis.reset();
         }
     };
 
@@ -163,6 +166,15 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
         // Emitted from ~CWindow, so the ref can no longer be locked; drop state of windows that are gone.
         CHyprtrizoneAlgorithm::pruneCachedWindowState();
+    });
+
+    // Runs before Hyprland's binds, which drop wheel ticks within binds:scroll_event_delay and pass them to the client.
+    s_pluginListeners.mouseAxis = Event::bus()->m_events.input.mouse.axis.listen([](IPointer::SAxisEvent event, Event::SCallbackInfo& info) {
+        if (GPLUGIN_SHUTTING_DOWN.load() || info.cancelled)
+            return;
+
+        if (CHyprtrizoneAlgorithm::handleWheelEvent(event))
+            info.cancelled = true;
     });
 
     return {"hyprtrizone", "Three-zone layout with scrolling side stacks and window pairing", "nyrda", "1.0"};

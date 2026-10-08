@@ -77,7 +77,8 @@ Check the result with `hyprctl plugin list` and `hyprctl configerrors`.
 | --- | --- | --- |
 | `SUPER+J` | `togglesplit`, which does nothing here | `swapwithmaster` |
 | `SUPER+L` | Toggle dwindle and scrolling, saved per workspace | Toggle hyprtrizone and dwindle, saved in the same files |
-| `SUPER+Shift+Wheel`, `SUPER+Shift+PgUp/PgDn` | Unbound | Scroll the focused side stack |
+| `SUPER+Shift+Wheel` | Unbound | Scroll the side stack under the pointer (`wheel_scroll_mods`) |
+| `SUPER+Shift+PgUp/PgDn` | Unbound | Scroll the focused side stack |
 
 `SUPER+Wheel` keeps switching workspaces. Omarchy's own `SUPER+L` script has no
 way back to hyprtrizone. If a workspace stays on another layout, delete its
