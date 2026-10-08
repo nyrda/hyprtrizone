@@ -37,7 +37,7 @@ die() {
 
 has_ambient_pkg_config() {
     command -v pkg-config >/dev/null 2>&1 || return 1
-    pkg-config --exists pixman-1 libdrm hyprland
+    pkg-config --exists pixman-1 libdrm hyprland libeis-1.0
 }
 
 nix_pkg_config_path() {

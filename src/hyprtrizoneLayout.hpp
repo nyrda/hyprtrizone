@@ -3,12 +3,14 @@
 #include "globals.hpp"
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/desktop/DesktopTypes.hpp>
+#include <hyprland/src/devices/IPointer.hpp>
 #include <hyprland/src/helpers/math/Math.hpp>
 #include <hyprland/src/helpers/math/Direction.hpp>
 #include <hyprland/src/layout/algorithm/TiledAlgorithm.hpp>
 #include <hyprland/src/layout/space/Space.hpp>
 #include <hyprland/src/layout/target/Target.hpp>
 #include <hyprland/src/render/Renderer.hpp>
+#include <chrono>
 #include <list>
 #include <optional>
 #include <set>
@@ -60,6 +62,9 @@ class CHyprtrizoneAlgorithm : public Layout::ITiledAlgorithm {
     static CHyprtrizoneAlgorithm*            activeOnMonitor(PHLMONITOR pMonitor);
     static void                              pruneCachedWindowState();
 
+    // Scrolls a side stack for a mouse wheel event while wheel_scroll_mods are held. Returns whether the event was consumed.
+    static bool handleWheelEvent(const IPointer::SAxisEvent& event);
+
     // Public workspace accessor for render callback
     PHLWORKSPACE workspace() const;
     bool         shouldWindowFollowWorkspaces(PHLWINDOW pWindow) const;
@@ -101,6 +106,14 @@ class CHyprtrizoneAlgorithm : public Layout::ITiledAlgorithm {
         std::vector<float> rowHeights;
     };
 
+    // Consecutive wheel ticks in one direction that arrived while the stack was still moving
+    struct SWheelStreak {
+        float                                 direction = 0.f;
+        float                                 notches   = 0.f;
+        float                                 offset    = 0.f;
+        std::chrono::steady_clock::time_point lastTick;
+    };
+
     std::list<SNodeData> m_nodes;
 
     // Per-workspace layout state
@@ -108,6 +121,8 @@ class CHyprtrizoneAlgorithm : public Layout::ITiledAlgorithm {
     bool  m_masterResized     = false;
     float m_leftScrollOffset  = 0.f;
     float m_rightScrollOffset = 0.f;
+    SWheelStreak m_leftWheelStreak;
+    SWheelStreak m_rightWheelStreak;
     bool  m_forceWarps        = false;
     // Set once Hyprland starts handing every target to another layout; this instance is then discarded
     bool  m_layoutTeardown    = false;
@@ -142,7 +157,10 @@ class CHyprtrizoneAlgorithm : public Layout::ITiledAlgorithm {
     float getSideMaxScroll(eHyprtrizoneZone zone, float workspaceHeight, int sideCount) const;
     void  clampScrollOffsets();
     void  snapZoneToEnd(eHyprtrizoneZone zone);
+    bool  scrollZoneByRows(eHyprtrizoneZone zone, float rows, float amountMult = 1.f);
     void  scrollZone(eHyprtrizoneZone zone, float direction, float amountMult = 1.f);
+    void  wheelScrollZone(eHyprtrizoneZone zone, float direction, float notches);
+    bool  isZoneMoving(eHyprtrizoneZone zone) const;
     void  focusWindowInSideStack(SP<Layout::ITarget> target);
 
     // Zone preference helpers

@@ -64,6 +64,8 @@ let
           right_side_visible_windows = 2,
           pairing_right = true,
           pairing_tags = "tzpair",
+          wheel_scroll_mods = "SUPER",
+          wheel_scroll_step = 0.25,
         },
       },
     })
@@ -72,6 +74,7 @@ let
     hl.window_rule({ name = "tz-center", match = { title = "^tz-center$" }, tag = "+tzcenter" })
     hl.window_rule({ name = "tz-right", match = { title = "^tz-right$" }, tag = "+tzright" })
     hl.window_rule({ name = "tz-pair", match = { title = "^tz-pair.*$" }, tag = "+tzpair" })
+    hl.window_rule({ name = "tz-wheel", match = { title = "^tz-wheel.*$" }, tag = "+tzright" })
   '';
 
 in
@@ -91,6 +94,9 @@ in
         pkgs.foot
         pkgs.jq
         pkgs.procps
+        # Virtual keyboard and pointer for the wheel scrolling check.
+        pkgs.wlrctl
+        pkgs.wtype
       ];
 
       environment.variables = {
@@ -447,6 +453,47 @@ in
     wait_for("workspace to switch back to hyprtrizone", lambda: tiled_layout() == "hyprtrizone")
     hold("windows to be zoned again after the layout switch", lambda: client("tz-left")["at"][0] < client("tz-center")["at"][0] and in_right_zone(client("tz-pair-a")))
     hold("rows and pairs to survive the layout switch: {e, c} | {a, d}", lambda: paired("tz-pair-e", "tz-pair-c") and paired("tz-pair-a", "tz-pair-d") and above("tz-pair-e", "tz-pair-a"))
+
+    # Wheel scrolling while wheel_scroll_mods are held: every tick scrolls the stack under the cursor, also the
+    # ticks Hyprland's binds would drop within binds:scroll_event_delay (300 ms) and pass to the window.
+    for title in ["tz-wheel-1", "tz-wheel-2"]:
+        spawn(title)
+        wait_for(f"{title} to open in the right stack", lambda: client(title) is not None and in_right_zone(client(title)))
+
+    def wheel(*deltas, mods=True):
+        # wlrctl's virtual pointer sends wheel ticks; Hyprland makes 15 units one 120-unit notch.
+        script = "; ".join(f"wlrctl pointer scroll {d}" for d in deltas)
+        if mods:
+            script = f"wtype -M logo -s 2000 -m logo & sleep 0.5; {script}; wait"
+        machine.succeed("su - alice -c " + shlex.quote(f"{client_env} sh -c {shlex.quote(script)}"))
+
+    def wheel_offset():
+        return wheel_origin - client("tz-pair-e")["at"][1]
+
+    def scrolled_by(expected):
+        return lambda: abs(wheel_offset() - expected) <= 1
+
+    # Right rows are (1080 - 32) / 2 = 524 px; a notch moves 0.25 rows.
+    dispatch_lua('hl.dsp.layout("scroll right up 100")')
+    time.sleep(1)
+    wheel_origin = client("tz-pair-e")["at"][1]
+    dispatch_lua("hl.dsp.cursor.move({ x = 1800, y = 540 })")
+
+    wheel(15, mods=False)
+    hold("a tick without the modifier to leave the stack alone", scrolled_by(0))
+    wheel(15, 15, 15)
+    wait_for("three ticks to scroll three notches", scrolled_by(3 * 131))
+    wheel(7)
+    wait_for("a partial notch to scroll in proportion", scrolled_by(3 * 131 + 524 * 0.25 * 56 / 120))
+    wheel(*[-15] * 10)
+    wait_for("scrolling up to stop at the top", scrolled_by(0))
+
+    # Ticks that arrive while the stack still moves extend its target with a growing step: 1, 1.5, 2 notches.
+    hypr("eval " + shlex.quote('hl.config({ animations = { enabled = true } }) hl.animation({ leaf = "windowsMove", enabled = true, speed = 50, bezier = "default" })'))
+    wheel(15, 15, 15)
+    wait_for("ticks during the animation to accelerate", scrolled_by(4.5 * 131))
+    hypr("eval " + shlex.quote("hl.config({ animations = { enabled = false } })"))
+    dispatch_lua('hl.dsp.layout("scroll right up 100")')
 
     dispatch_lua('hl.dsp.exec_cmd("foot -T tz-exec sh -c \'sleep 900\'", { workspace = "2 silent" })')
     wait_for("exec_cmd window to open on workspace 2", lambda: client("tz-exec") is not None and client("tz-exec")["workspace"]["id"] == 2)

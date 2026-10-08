@@ -40,6 +40,9 @@ namespace HyprtrizoneConfig {
         addValue<Config::Values::CIntValue>(handle, "plugin:hyprtrizone:left_side_visible_windows", "hyprtrizone visible left side rows", 0);
         addValue<Config::Values::CIntValue>(handle, "plugin:hyprtrizone:right_side_visible_windows", "hyprtrizone visible right side rows", 0);
         addValue<Config::Values::CFloatValue>(handle, "plugin:hyprtrizone:scroll_step", "hyprtrizone side scroll step", 0.35F);
+        addValue<Config::Values::CStringValue>(handle, "plugin:hyprtrizone:wheel_scroll_mods", "hyprtrizone modifiers for wheel scrolling", "");
+        addValue<Config::Values::CFloatValue>(handle, "plugin:hyprtrizone:wheel_scroll_step", "hyprtrizone side scroll step per wheel notch", 0.5F);
+        addValue<Config::Values::CFloatValue>(handle, "plugin:hyprtrizone:wheel_scroll_acceleration", "hyprtrizone wheel step growth per notch while moving", 0.5F);
         addValue<Config::Values::CBoolValue>(handle, "plugin:hyprtrizone:pairing_left", "hyprtrizone left side pairing", false);
         addValue<Config::Values::CBoolValue>(handle, "plugin:hyprtrizone:pairing_right", "hyprtrizone right side pairing", false);
         addValue<Config::Values::CBoolValue>(handle, "plugin:hyprtrizone:pairing_tag_only", "hyprtrizone pairing requires tags", true);

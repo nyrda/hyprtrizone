@@ -57,9 +57,12 @@ back on restores it.
 ## Scrolling
 
 A side stack shows `side_visible_windows` rows. Further rows overflow and the
-stack scrolls. The `scroll` command scrolls the focused side, and the
-[demo config](../examples/hyprtrizone-demo.lua) binds it to Super and the mouse
-wheel. With the center focused, the `side_bias` stack scrolls.
+stack scrolls. The `scroll` command scrolls the focused side. With the center
+focused, the `side_bias` stack scrolls. With `wheel_scroll_mods` held, the
+mouse wheel scrolls the stack under the pointer; the
+[demo config](../examples/hyprtrizone-demo.lua) uses Super. Notches that arrive
+while the stack still moves travel further, see
+[Wheel scrolling](configuration.md#wheel-scrolling).
 
 Moving focus does not scroll. `windowfocus` scrolls the focused window into
 view. A window moved into a side, by keyboard, zone command, or drop into an

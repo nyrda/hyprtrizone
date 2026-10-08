@@ -6,7 +6,7 @@
 #
 # In the VM: SUPER+Return terminal, SUPER+Q close, SUPER+arrows focus, SUPER+SHIFT+arrows move,
 # SUPER+left mouse drag (drop onto windows to pair/exchange), SUPER+SHIFT+F7 re-populate, SUPER+M exit.
-# SUPER+mouse wheel scrolls the focused side stack (right stack when the center is focused).
+# SUPER+mouse wheel scrolls the side stack under the pointer (over the center: focused side, else the right one).
 {
   system ? "x86_64-linux",
   pkgs ? import ./pkgs.nix { inherit system; },
