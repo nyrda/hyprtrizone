@@ -195,11 +195,11 @@ ship its release. Omarchy's stable channel runs about a month behind Arch.
 A release that needs no code changes, typically a patch release, still gets its
 own branch with its own pin and version file, so its tests run against it.
 
-The Nix builds and tests use the Hyprland package from the pinned nixpkgs
-(`nix/pkgs.nix`), which cache.nixos.org serves prebuilt. Pick a revision
-Hydra has built, for example the head of `nixos-unstable`. CI never compiles
-Hyprland: its first step fetches it with local builds disabled and fails when
-the cache does not have it.
+Until nixpkgs has a release that needs this port, the Nix builds and tests use
+Hyprland's own flake at a `main` commit, built with its pinned nixpkgs and
+compiler (`nix/pkgs.nix`). Pick a commit Hyprland's CI has published to
+hyprland.cachix.org. CI never compiles Hyprland: its first step fetches it
+with local builds disabled and fails when the cache does not have it.
 
 Keep behavior changes out of dependency ports. `setPositionGlobal` already
 applies Hyprland's gaps, and pairing must stay local to the insertion point.

@@ -68,7 +68,7 @@ run_make() {
     [[ -e "${ROOT_DIR}/.pre-commit-config.yaml" ]] && had_precommit=1
     [[ -e "${ROOT_DIR}/.git/hooks/pre-commit" ]] && had_precommit_hook=1
     if ! pc_path="$(nix_pkg_config_path)"; then
-        # Fall back to the nixpkgs package set pinned in flake.lock (nix/pkgs.nix).
+        # Fall back to Hyprland's package set at the commit pinned in flake.lock (nix/pkgs.nix).
         log "make $* inside the pinned Hyprland's build shell (nix/hyprtrizone-vm-test.nix)"
         nix-shell "${ROOT_DIR}/nix/hyprtrizone-vm-test.nix" -A plugin --run "make $(printf '%q ' "$@")"
         return
