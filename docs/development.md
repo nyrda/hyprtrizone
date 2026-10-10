@@ -206,6 +206,22 @@ Hyprland, the merge brings that port along and the branch no longer builds.
 Keep a release branch updated while the distributions you care about still
 ship its release. Omarchy's stable channel runs about a month behind Arch.
 
+### Tags
+
+A tag marks a tested state of a release branch: `v<Hyprland version>-<n>`, for
+example `v0.57.0-1`, where `n` counts the plugin's own releases for that
+Hyprland release. Tag a release branch after fixes that users should pick up,
+with the next `n`:
+
+```sh
+git tag -a v0.57.0-2 hyprland-0.57.0 -m "hyprtrizone for Hyprland 0.57.0, revision 2"
+git push origin v0.57.0-2
+```
+
+Tags never use the branch names: a tag `hyprland-0.57.0` next to the branch of
+the same name makes the plain name ambiguous for Git and Nix flake references.
+Nix users can pin a tag with `github:nyrda/hyprtrizone/v0.57.0-1`.
+
 ### Porting to a new release
 
 1. Branch the current state: `git branch hyprland-<current version> master`,
@@ -218,9 +234,10 @@ ship its release. Omarchy's stable channel runs about a month behind Arch.
    reference. `make IGNORE_HYPRLAND_VERSION=1` builds against other headers
    while porting.
 4. Run the package build and both VM tests, then regenerate the screenshot and
-   video.
+   video, and replace the video attachment in the README.
 5. Update the version in the documentation.
-6. Create `hyprland-<new version>` at the new `master`.
+6. Create `hyprland-<new version>` at the new `master`, and tag that commit
+   `v<new version>-1`.
 
 A release that needs no code changes, typically a patch release, still gets its
 own branch with its own pin and version file, so its tests run against it.
