@@ -18,6 +18,30 @@ The VM commands need Nix and KVM, and pass extra arguments to `nix-build`. Only
 `vm-demo` opens a window; the tests and recordings run unattended. Only
 `reload` touches your desktop session.
 
+## Demo VM
+
+`./dev.sh vm-demo` boots a disposable NixOS VM with Hyprland, a set of example
+windows, and the [Quickshell panels](../examples/quickshell/README.md). It needs
+KVM and a graphical session, and its disk is discarded on exit. The layout
+settings come from [`examples/hyprtrizone-demo.lua`](../examples/hyprtrizone-demo.lua),
+which also runs in a normal session. The VM adds the general Hyprland binds;
+the example file enables wheel scrolling and binds the F-keys.
+
+| Keys | Action |
+| --- | --- |
+| `Super+Return` | Open a terminal |
+| `Super+Q` | Close the focused window |
+| `Super+Arrows` | Move focus |
+| `Super+Shift+Arrows` | Move the window between columns or rows |
+| `Super+Left drag` | Drag a window; drop it onto another to pair or exchange |
+| `Super+Right drag` | Resize |
+| `Super+Wheel` | Scroll the side stack under the pointer; over the center, the focused side or the right one |
+| `Super+1/2/3` | Switch workspace |
+| `Super+Shift+F7` | Reopen the demo windows |
+| `Super+Shift+F8/F9` | Toggle pairing on the left/right side |
+| `Super+Shift+F10` | Toggle scrolling |
+| `Super+M` | Exit Hyprland |
+
 ## Reloading into a live session
 
 `./dev.sh reload` builds, then runs `reload-plugin.sh`:
@@ -95,6 +119,12 @@ The recording takes a few minutes and uses 8 VM cores. Nix reuses the previous
 result until one of these files changes. The tour asserts the layout after
 each step, so a behavior change fails the recording instead of producing a
 misleading video.
+
+The README plays the video from a GitHub attachment, because GitHub does not
+play videos stored in the repository inline. After recording a new tour, drag
+`docs/demo.mp4` into a GitHub comment box, copy the
+`https://github.com/user-attachments/assets/…` URL it inserts without posting
+the comment, and replace the URL in the README.
 
 ## Testing on Omarchy
 

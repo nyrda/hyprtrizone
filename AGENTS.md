@@ -17,7 +17,8 @@ Use `./dev.sh` for routine work:
 `./dev.sh reload` changes the running desktop session. The VM commands provide
 isolated validation. `vm-demo` opens the graphical demo and `vm-test-interactive`
 opens the test driver. `vm-demo-video` records the 30:9 feature tour into
-`docs/demo.mp4`; rerun it when a change affects what the tour shows.
+`docs/demo.mp4`; rerun it when a change affects what the tour shows. The README plays a GitHub
+attachment copy of the video; the user re-uploads it after a new recording.
 
 Each branch targets the Hyprland release in `HYPRLAND_VERSION`: `master` the newest,
 `hyprland-<version>` one release each. Commit fixes on `master` and cherry-pick them onto

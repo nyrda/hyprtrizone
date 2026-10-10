@@ -2,86 +2,68 @@
 
 [![CI](https://github.com/nyrda/hyprtrizone/actions/workflows/ci.yml/badge.svg)](https://github.com/nyrda/hyprtrizone/actions/workflows/ci.yml)
 
-A Hyprland layout for ultrawide monitors. The main window sits in the middle
-of the screen, where you look most. A scrolling stack on each side holds
-everything else. Two windows can share a row in a side stack, and window tags
-decide where a window goes.
+A Hyprland layout plugin for ultrawide monitors. The main window sits in the
+middle of the screen, where you look most, and a scrolling stack on each side
+holds everything else. Two windows can share a row in a side stack, and window
+tags decide which column a window opens in.
 
-[![The hyprtrizone feature tour on a 30:9 monitor](docs/demo-video.png)](docs/demo.mp4)
+https://github.com/user-attachments/assets/9628c5b4-0ba5-4364-8d96-cf6a1bbaf8cb
 
-**[▶ Watch the feature tour](docs/demo.mp4)** (3600×1080, 80 seconds).
-It was recorded by `./dev.sh vm-demo-video` in a NixOS VM.
-
-This is a personal plugin. It is built and tested against **Hyprland 0.56.2**
-with a Lua configuration. The Nix flake pins the compositor and the plugin
-together. Other Hyprland releases have their own `hyprland-<version>` branches.
+Hyprland's `master` layout can center the main window too, but it splits a
+single stack across both sides: windows jump between left and right as others
+open and close, and every window shrinks to fit. Here each side is a stack of
+its own. Windows stay on their side, keep a readable row height, and scroll.
+Unlike a scrolling layout, the center never moves.
 
 ## Features
 
 - **Three columns.** The center takes half the width by default, and each side
   a quarter. The center can hold several windows, stacked vertically.
 - **Scrolling side stacks.** Rows keep a readable height and scroll instead of
-  shrinking. Badges count the windows above and below the visible part. Each
+  shrinking. Badges show how many windows are scrolled out of view. Each
   workspace keeps its own scroll position.
 - **Pairing.** Two windows can share a side row. A pair forms where a window
-  opens; other rows stay where they are.
-- **Tag-based placement.** Hyprland window rules tag windows for a column, for
-  pairing, or to follow you between workspaces.
-- **Drag and drop.** Drop a window onto another to pair with it or exchange
+  opens.
+- **Tag-based placement.** Hyprland window rules tag windows for a column or
+  for pairing.
+- **Windows that follow you.** A tiled window tagged to follow, such as a music
+  player or a chat, moves along when you switch workspaces on its monitor.
+  Because each side is a stack of its own, it keeps its column and goes to the
+  top of it, and the other windows stay on their sides.
+- **Drag and drop.** Drag a window onto another to reorder, pair, or exchange
   places. Keyboard moves travel across columns and rows.
+- **Wheel scrolling.** With a modifier held, the mouse wheel scrolls the side
+  stack under the pointer.
 - **Room for side panels.** Space can be reserved above either side stack only,
-  so a panel fits there while the center keeps the full monitor height.
-- **Runtime commands.** Scroll, move windows between zones, and toggle
-  scrolling or pairing from binds or `hyprctl`.
+  so a panel such as the [Quickshell example](examples/quickshell/README.md)
+  fits there while the center keeps the full monitor height.
 
-## Try it in a VM
+## Compatibility
 
-```sh
-git clone https://github.com/nyrda/hyprtrizone.git
-cd hyprtrizone
-./dev.sh vm-demo
-```
-
-Nix boots a disposable NixOS VM with Hyprland, a set of example windows, and
-the [Quickshell panels](examples/quickshell/README.md). It needs KVM and a
-graphical session, and its disk is discarded on exit.
-
-![The demo VM: paired rows on both sides, overflow badges, and Quickshell panels above the side stacks](docs/demo.png)
-
-The demo VM binds these keys:
-
-| Keys | Action |
-| --- | --- |
-| `Super+Return` | Open a terminal |
-| `Super+Q` | Close the focused window |
-| `Super+Arrows` | Move focus |
-| `Super+Shift+Arrows` | Move the window between columns or rows |
-| `Super+Left drag` | Drag a window; drop it onto another to pair or exchange |
-| `Super+Right drag` | Resize |
-| `Super+Wheel` | Scroll the side stack under the pointer; over the center, the focused side or the right one |
-| `Super+1/2/3` | Switch workspace |
-| `Super+Shift+F7` | Reopen the demo windows |
-| `Super+Shift+F8/F9` | Toggle pairing on the left/right side |
-| `Super+Shift+F10` | Toggle scrolling |
-| `Super+M` | Exit Hyprland |
-
-The layout settings come from [`examples/hyprtrizone-demo.lua`](examples/hyprtrizone-demo.lua),
-which also runs in a normal session. The VM adds the general Hyprland binds;
-the example file enables wheel scrolling and binds the F-keys.
+- hyprtrizone is built and tested against **Hyprland 0.56.2** and supports
+  only Hyprland's Lua configuration, not a classic `hyprland.conf`.
+- A Hyprland plugin only loads into the exact Hyprland build it was compiled
+  against, so it has to be rebuilt after every Hyprland update. The NixOS
+  module and the Omarchy update hook do that for you.
+- `master` follows the newest supported release. The branches
+  `hyprland-0.56.1` and `hyprland-0.56.2` track those releases, and older
+  releases are not supported. `port-hyprland-main` is an experimental port to
+  Hyprland's `main` branch.
+- See the [known limitations](docs/behavior.md#known-limitations).
 
 ## Install
 
-The plugin must be built against the exact Hyprland build that loads it.
-[Installation](docs/installation.md) covers NixOS, a manual build, and hyprpm.
-[Omarchy](docs/omarchy.md) has its own guide.
-On NixOS, the module installs the matching Hyprland and a Lua loader:
+Pick the method for your system. [Installation](docs/installation.md) has the
+details and troubleshooting.
+
+**NixOS.** The flake's module installs the plugin, a Lua loader, and the
+Hyprland build the plugin is tested with. It sets `programs.hyprland.package`
+and `portalPackage` to that build, with `mkDefault`.
 
 ```nix
 # flake.nix
 inputs.hyprtrizone.url = "github:nyrda/hyprtrizone";
-```
 
-```nix
 # A NixOS module, with inputs passed through specialArgs.
 { inputs, ... }: {
   imports = [ inputs.hyprtrizone.nixosModules.default ];
@@ -89,22 +71,77 @@ inputs.hyprtrizone.url = "github:nyrda/hyprtrizone";
 }
 ```
 
-```lua
--- hyprland.lua. Load the plugin before configuring it.
-dofile("/etc/xdg/hypr/hyprtrizone_plugin.lua")
+Then load the plugin at the top of `hyprland.lua` with
+`dofile("/etc/xdg/hypr/hyprtrizone_plugin.lua")`.
 
+**Arch, CachyOS, and other distributions with hyprpm.** Use the branch that
+matches `hyprctl version`:
+
+```sh
+hyprpm update
+hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.56.2
+hyprpm enable hyprtrizone
+```
+
+hyprpm loads plugins after Hyprland has started, so select the layout from a
+start hook; see [hyprpm](docs/installation.md#hyprpm).
+
+**Omarchy 4.** Clone, `make`, and install the example config and an update
+hook that rebuilds after every `omarchy update`. [Omarchy](docs/omarchy.md)
+covers the steps and the changed keybindings.
+
+**Manual build.** `make` builds `hyprtrizoneLayout.so`; load it with
+`hl.plugin.load("/absolute/path/to/hyprtrizoneLayout.so")`. It needs a C++23
+compiler, pkg-config, and the development files of Hyprland 0.56.2, libei, and
+Lua 5.5. See [manual build](docs/installation.md#manual-build).
+
+## Configure
+
+Load the plugin before its settings; with hyprpm, apply them after it has
+loaded the plugin, as described under [hyprpm](docs/installation.md#hyprpm).
+This example turns on the features that are off by default: pairing,
+tag-based placement, and wheel scrolling.
+
+```lua
 hl.config({
     general = { layout = "hyprtrizone" },
     plugin = { hyprtrizone = {
-        master_factor = 0.5,
-        side_bias = "right",
-        side_visible_windows = 3,
+        pairing_right = true,
+        pairing_tags = "pair",
+        zone_tags_left = "browser",
+        -- Takes over Super + wheel, which many configs use to switch workspaces.
         wheel_scroll_mods = "SUPER",
     } },
 })
 
+hl.window_rule({ name = "pair-terminals", match = { class = [[^(kitty|foot)$]] }, tag = "+pair" })
+hl.window_rule({ name = "left-browsers", match = { class = [[^(firefox|chromium)$]] }, tag = "+browser" })
+
 hl.bind("SUPER + SPACE", hl.dsp.layout("swapwithmaster"))
+hl.bind("SUPER + SHIFT + Page_Up", hl.dsp.layout("scroll up"))
+hl.bind("SUPER + SHIFT + Page_Down", hl.dsp.layout("scroll down"))
 ```
+
+[Configuration](docs/configuration.md) lists every option and runtime command,
+and [`examples/hyprtrizone-demo.lua`](examples/hyprtrizone-demo.lua) is a
+complete configuration.
+
+## Try it in a VM
+
+With Nix, KVM, and a graphical session, you can try the layout without
+installing anything:
+
+```sh
+git clone https://github.com/nyrda/hyprtrizone.git
+cd hyprtrizone
+./dev.sh vm-demo
+```
+
+This boots a disposable NixOS VM with Hyprland, example windows, the demo
+configuration, and the Quickshell panels. Its disk is discarded on exit.
+[Development](docs/development.md#demo-vm) lists its keys.
+
+![The demo VM: paired rows on both sides, overflow badges, and Quickshell panels above the side stacks](docs/demo.png)
 
 ## Documentation
 
@@ -115,18 +152,7 @@ hl.bind("SUPER + SPACE", hl.dsp.layout("swapwithmaster"))
 | [Configuration](docs/configuration.md) | Every option with its default, and every runtime command |
 | [Window behavior](docs/behavior.md) | Placement, pairing, scrolling, drag and drop, resizing, workspaces |
 | [Quickshell example](examples/quickshell/README.md) | Panels above the side stacks |
-| [Development](docs/development.md) | Builds, live reloading, VM tests, the demo video, source layout |
-
-## Development
-
-```sh
-./dev.sh build                # Clean build of hyprtrizoneLayout.so
-./dev.sh vm-test              # Headless layout integration test
-./dev.sh vm-demo-screenshot   # Demo session test; updates docs/demo.png
-./dev.sh vm-demo-video        # Records the feature tour; updates docs/demo.mp4
-```
-
-CI builds the plugin on the pinned package set and evaluates both VM tests; run them locally.
+| [Development](docs/development.md) | Builds, live reloading, the demo VM, VM tests, the demo video, source layout |
 
 ## License
 
