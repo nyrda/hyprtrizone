@@ -11,7 +11,9 @@ permissions:
 
 # Hyprland comes from its own flake at the pinned tag (nix/pkgs.nix). The first job builds it, or fetches it
 # from hyprland.cachix.org, and caches its closure under a key covering everything that decides that build.
-# It saves even when the tests fail, so each tag is compiled at most once.
+# It saves even when the later steps fail, so each tag is compiled at most once.
+# GitHub's runners are too small for the VM tests; they run locally with ./dev.sh vm-test and vm-demo-screenshot.
+# CI only evaluates them.
 jobs:
   hyprland:
     name: Hyprland
@@ -39,18 +41,12 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     needs: hyprland
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
       - uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
-            system-features = nixos-test benchmark big-parallel kvm
             extra-substituters = https://hyprland.cachix.org
             extra-trusted-public-keys = hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc=
       - uses: nix-community/cache-nix-action@v7
@@ -59,7 +55,7 @@ jobs:
           save: false
       - name: Build plugin
         run: nix build .#hyprtrizone --print-build-logs
-      - name: Layout integration
-        run: nix build .#checks.x86_64-linux.vm-test --print-build-logs
-      - name: Quickshell demo
-        run: nix build .#checks.x86_64-linux.demo --print-build-logs
+      - name: Evaluate the VM tests
+        run: |
+          nix eval --raw .#checks.x86_64-linux.vm-test.drvPath
+          nix eval --raw .#checks.x86_64-linux.demo.drvPath

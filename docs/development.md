@@ -54,8 +54,9 @@ session on a 2560×1080 virtual monitor. It checks that the Quickshell panels si
 above the side stacks without shortening the center, then captures
 `docs/demo.png`. It also checks the full-width panel mode.
 
-CI builds the package and runs both tests. The flake exposes them as
-`checks.x86_64-linux.vm-test` and `checks.x86_64-linux.demo`.
+The flake exposes both tests as `checks.x86_64-linux.vm-test` and
+`checks.x86_64-linux.demo`. GitHub's runners are too small for them, so run
+them locally. CI builds the package and only evaluates the tests.
 
 ## Demo video
 

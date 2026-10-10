@@ -28,6 +28,7 @@ branches" in `docs/development.md`.
 reference. The helper uses its Nix shell only if `hyprland.dev` is already built;
 otherwise it falls back to the Hyprland flake tag pinned in `flake.lock` (`nix/pkgs.nix`).
 Nix builds use Hyprland's own flake and package set, never nixpkgs' Hyprland.
+CI does not run the VM tests: GitHub's runners are too small for them. Run them locally.
 
 ## Files
 
