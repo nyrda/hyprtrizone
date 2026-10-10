@@ -25,7 +25,7 @@ in
   config = lib.mkIf cfg.enable {
     programs.hyprland = {
       enable = lib.mkDefault true;
-      # Both come from the nixpkgs revision locked by the hyprtrizone flake, the Hyprland the plugin is tested with.
+      # Both come from the Hyprland flake revision locked by the hyprtrizone flake, the Hyprland the plugin is tested with.
       package = lib.mkDefault packages.hyprland;
       portalPackage = lib.mkDefault packages.xdg-desktop-portal-hyprland;
     };

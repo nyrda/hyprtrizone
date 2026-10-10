@@ -2,8 +2,8 @@
 #include "hyprtrizoneLayout.hpp"
 #include <hyprland/src/render/Renderer.hpp>
 
-std::vector<UP<IPassElement>> CStackIndicatorPassElement::draw() {
-    auto monitor = g_pHyprRenderer->m_renderData.pMonitor.lock();
+std::vector<UP<IPassElement>> CStackIndicatorPassElement::draw(Render::CRenderContext& ctx) {
+    auto monitor = ctx.m_data.pMonitor.lock();
     if (!monitor)
         return {};
 
@@ -12,16 +12,16 @@ std::vector<UP<IPassElement>> CStackIndicatorPassElement::draw() {
         if (!ws)
             continue;
         if (ws == monitor->m_activeWorkspace || ws == monitor->m_activeSpecialWorkspace)
-            algo->renderStackIndicators(monitor);
+            algo->renderStackIndicators(monitor, ctx);
     }
 
     return {};
 }
 
-bool CStackIndicatorPassElement::needsLiveBlur() {
+bool CStackIndicatorPassElement::needsLiveBlur(Render::CRenderContext&) {
     return false;
 }
 
-bool CStackIndicatorPassElement::needsPrecomputeBlur() {
+bool CStackIndicatorPassElement::needsPrecomputeBlur(Render::CRenderContext&) {
     return false;
 }
