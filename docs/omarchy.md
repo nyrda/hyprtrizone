@@ -114,7 +114,7 @@ to dwindle and `hyprctl configerrors` lists the `plugin.hyprtrizone` options.
 Roll back to the snapshot taken before the update, or wait for the branch and
 run `bash ~/.config/omarchy/hooks/post-update.d/hyprtrizone-update` once it
 exists. A failure never stops the Omarchy update; the build log is
-`/tmp/hyprtrizone-update.log`.
+`~/.local/state/hyprtrizone/update.log`.
 
 ## hyprpm
 
@@ -157,7 +157,7 @@ Remove the `require("hypr.hyprtrizone")` line, and delete these files:
 - `~/.config/hypr/hyprtrizone.lua`
 - `~/.config/omarchy/hooks/post-update.d/hyprtrizone-update`
 - `~/.local/bin/hyprtrizone-layout-toggle`
-- `~/.local/lib/hyprtrizone/` and `~/.local/src/hyprtrizone/`
+- `~/.local/lib/hyprtrizone/`, `~/.local/src/hyprtrizone/`, and `~/.local/state/hyprtrizone/`
 - `~/.local/state/omarchy/workspace-layouts/*.lua`
 
 Then log out and back in.
