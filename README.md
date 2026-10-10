@@ -126,7 +126,7 @@ hl.bind("SUPER + SPACE", hl.dsp.layout("swapwithmaster"))
 ./dev.sh vm-demo-video        # Records the feature tour; updates docs/demo.mp4
 ```
 
-CI builds the plugin and runs both VM tests on the pinned package set.
+CI builds the plugin on the pinned package set and evaluates both VM tests; run them locally.
 
 ## License
 
