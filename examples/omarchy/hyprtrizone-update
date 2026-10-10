@@ -10,7 +10,7 @@
 SRC=${HYPRTRIZONE_SRC:-$HOME/.local/src/hyprtrizone}
 DEST=$HOME/.local/lib/hyprtrizone/hyprtrizoneLayout.so
 STAMP=$HOME/.local/lib/hyprtrizone/build-stamp
-LOG=/tmp/hyprtrizone-update.log
+LOG=${XDG_STATE_HOME:-$HOME/.local/state}/hyprtrizone/update.log
 
 report() {
   echo "hyprtrizone: $1"
@@ -39,6 +39,8 @@ git -C "$SRC" checkout --quiet --detach "$REF" || { report "Could not check out 
 # Rebuild only when the source or a package that goes into the plugin's build hash changed.
 STATE="$(git -C "$SRC" rev-parse HEAD) $(pacman -Q hyprland aquamarine hyprutils hyprlang hyprgraphics hyprcursor 2>/dev/null | tr '\n' ' ')"
 [[ -f $DEST && $(cat "$STAMP" 2>/dev/null) == "$STATE" ]] && exit 0
+
+mkdir -p "${LOG%/*}" || { report "Could not create ${LOG%/*}" critical; exit 0; }
 
 # Hyprland's headers are system headers, so make cannot see that they changed: always build from scratch.
 if ! { make -C "$SRC" clean && make -C "$SRC" -j"$(nproc)"; } >"$LOG" 2>&1; then
