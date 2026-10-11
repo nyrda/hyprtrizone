@@ -2,18 +2,15 @@
 
 [![CI](https://github.com/nyrda/hyprtrizone/actions/workflows/ci.yml/badge.svg)](https://github.com/nyrda/hyprtrizone/actions/workflows/ci.yml)
 
-A Hyprland layout plugin for ultrawide monitors. The main window sits in the
-middle of the screen, where you look most, and a scrolling stack on each side
-holds everything else. Two windows can share a row in a side stack, and window
-tags decide which column a window opens in.
+A Hyprland window layout plugin for ultrawide monitors with three independent
+stacks: the main window in the center, and vertically scrolling stacks on the
+left and right.
 
 https://github.com/user-attachments/assets/9628c5b4-0ba5-4364-8d96-cf6a1bbaf8cb
 
-Hyprland's `master` layout can center the main window too, but it splits a
-single stack across both sides: windows jump between left and right as others
-open and close, and every window shrinks to fit. Here each side is a stack of
-its own. Windows stay on their side, keep a readable row height, and scroll.
-Unlike a scrolling layout, the center never moves.
+Unlike Hyprland's centered master layout (`master` with `orientation = "center"`),
+each side is a stack of its own: windows stay on their side instead of jumping
+between left and right, and keep a readable height instead of shrinking.
 
 ## Features
 
@@ -22,21 +19,24 @@ Unlike a scrolling layout, the center never moves.
 - **Scrolling side stacks.** Rows keep a readable height and scroll instead of
   shrinking. Badges show how many windows are scrolled out of view. Each
   workspace keeps its own scroll position.
-- **Pairing.** Two windows can share a side row. A pair forms where a window
-  opens.
-- **Tag-based placement.** Hyprland window rules tag windows for a column or
-  for pairing.
-- **Windows that follow you.** A tiled window tagged to follow, such as a music
-  player or a chat, moves along when you switch workspaces on its monitor.
+- **Tag-based placement.** Tag a window with a window rule to decide which
+  column it opens in.
+- **Pairing.** Two windows can share a side row. Tag the windows that may
+  pair; a new one pairs with the single window in the row it opens below.
+- **Windows that follow you.** A tiled window tagged to follow, such as a video
+  player, moves along when you switch workspaces on its monitor.
   Because each side is a stack of its own, it keeps its column and goes to the
   top of it, and the other windows stay on their sides.
 - **Drag and drop.** Drag a window onto another to reorder, pair, or exchange
   places. Keyboard moves travel across columns and rows.
 - **Wheel scrolling.** With a modifier held, the mouse wheel scrolls the side
   stack under the pointer.
-- **Room for side panels.** Space can be reserved above either side stack only,
-  so a panel such as the [Quickshell example](examples/quickshell/README.md)
-  fits there while the center keeps the full monitor height.
+- **Status bars beside the center.** A full-width bar costs a strip across the
+  whole ultrawide screen. hyprtrizone can reserve space above the side stacks
+  only, so you can place one or two bar islands there instead, like the
+  [Quickshell example](examples/quickshell/README.md). The center keeps the full
+  monitor height: on a 49" 32:9 monitor, a game in the center column gets the
+  equivalent of a whole 27" 16:9 screen.
 
 ## Compatibility
 
