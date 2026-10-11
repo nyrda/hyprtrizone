@@ -4,10 +4,10 @@
 #include "StackIndicatorPassElement.hpp"
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/debug/log/Logger.hpp>
-#include <hyprland/src/desktop/Workspace.hpp>
+#include <hyprland/src/workspace/HLWorkspace.hpp>
 #include <hyprland/src/desktop/state/GlobalWindowController.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
-#include <hyprland/src/desktop/view/Window.hpp>
+#include <hyprland/src/desktop/view/window/Window.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -88,22 +88,22 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         PHANDLE, "hyprtrizone", &typeid(CHyprtrizoneAlgorithm),
         []() -> UP<Layout::ITiledAlgorithm> { return makeUnique<CHyprtrizoneAlgorithm>(); });
 
-    s_pluginListeners.render = Event::bus()->m_events.render.stage.listen([](eRenderStage stage) {
+    s_pluginListeners.render = Event::bus()->m_events.render.stage.listen([](Event::SRenderStageEvent event) {
         if (GPLUGIN_SHUTTING_DOWN.load())
             return;
 
-        if (stage != RENDER_POST_WINDOWS)
+        if (event.stage != RENDER_POST_WINDOWS || !event.context)
             return;
 
         if (CHyprtrizoneAlgorithm::instances().empty())
             return;
 
-        auto monitor = g_pHyprRenderer->m_renderData.pMonitor.lock();
+        const auto& monitor = event.monitor;
         if (!monitor || !monitor->m_activeWorkspace)
             return;
 
         if (CHyprtrizoneAlgorithm::activeOnMonitor(monitor)) {
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CStackIndicatorPassElement>());
+            g_pHyprRenderer->addPassElement(event.context->get(), makeUnique<CStackIndicatorPassElement>());
         }
     });
 
@@ -114,7 +114,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         if (!pWorkspace || s_followWorkspaceMoveGuard)
             return;
 
-        if (pWorkspace->m_isSpecialWorkspace || pWorkspace->m_id <= 0)
+        // Numbered workspaces only, as before: special and named workspaces have no number.
+        if (pWorkspace->type() == Workspace::eWorkspaceType::SPECIAL || !pWorkspace->numberedID())
             return;
 
         const auto pMonitor = pWorkspace->m_monitor.lock();
@@ -125,7 +126,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         candidates.reserve(Desktop::windowState()->windows().size());
 
         for (const auto& w : Desktop::windowState()->windows()) {
-            if (!w || !w->m_isMapped || w->isHidden() || w->m_isFloating || w->m_pinned)
+            if (!w || !w->mapped() || w->isHidden() || w->isFloating() || (w->m_state & Desktop::View::WINDOW_STATE_PINNED))
                 continue;
 
             const auto windowMonitor = w->m_monitor.lock();
@@ -149,7 +150,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         const SFollowWorkspaceMoveGuardReset guard;
 
         for (const auto& w : candidates) {
-            if (!w || !w->m_isMapped || w->isHidden() || w->m_isFloating || w->m_pinned || w->m_workspace == pWorkspace)
+            if (!w || !w->mapped() || w->isHidden() || w->isFloating() || (w->m_state & Desktop::View::WINDOW_STATE_PINNED) || w->m_workspace == pWorkspace)
                 continue;
 
             auto* algo = CHyprtrizoneAlgorithm::fromWindow(w);
@@ -188,7 +189,7 @@ APICALL EXPORT void PLUGIN_EXIT() {
     // previous frame. Clear them while this .so is still loaded so their
     // destructors do not run after unload.
     if (g_pHyprRenderer)
-        g_pHyprRenderer->m_renderPass.clear();
+        g_pHyprRenderer->context().m_pass.clear();
 
     HyprlandAPI::removeAlgo(PHANDLE, "hyprtrizone");
 }
