@@ -20,7 +20,7 @@ distribution, build the branch for the Hyprland you have installed.
 
 The flake provides the plugin, the matching Hyprland and portal packages, and a
 NixOS module for `x86_64-linux`. Hyprland and its portal come from Hyprland's
-own flake at the pinned `main` commit, not from nixpkgs.
+own flake at the pinned commit, not from nixpkgs.
 
 ```nix
 # flake.nix
@@ -101,7 +101,7 @@ build dependencies in this order:
 1. Development packages installed on the system, through `pkg-config`.
 2. The Nix dev shell of a Hyprland checkout at `HYPRLAND_ROOT` (default
    `../Hyprland`), if its `hyprland.dev` output is already built.
-3. The nixpkgs package set pinned in `flake.lock`.
+3. Hyprland's package set at the commit pinned in `flake.lock`.
 
 Without Nix, install a C++23 compiler, Make, pkg-config, the Hyprland 0.56.2
 development files with their dependencies, and the libei and Lua 5.5

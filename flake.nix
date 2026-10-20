@@ -1,9 +1,10 @@
 {
   description = "hyprtrizone: three-zone Hyprland layout with scrolling side stacks";
 
-  # Hyprland's own flake at a main commit that hyprland.cachix.org has prebuilt. Everything else, including
-  # nixpkgs for the test VMs, comes from its package set (nix/pkgs.nix). Do not make it follow another nixpkgs:
-  # that changes the derivation, and nothing has it prebuilt.
+  # Hyprland's own flake at the release tag this branch targets, or at a main commit ahead of the next release,
+  # prebuilt on hyprland.cachix.org either way. Everything else, including nixpkgs for the test VMs, comes from its
+  # package set (nix/pkgs.nix). Do not make it follow another nixpkgs: that changes the derivation, and nothing has
+  # it prebuilt.
   inputs.hyprland.url = "github:hyprwm/Hyprland/2860d07b09ef94909bbb7113b2644b65fe8c20b2";
 
   outputs =

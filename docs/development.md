@@ -178,7 +178,7 @@ Each branch targets one Hyprland release, named in `HYPRLAND_VERSION`:
 Every supported release has its own branch; the newest one points at the same
 commit as `master` until `master` moves on. The Makefile stops when
 `pkg-config` finds a different Hyprland, the Nix test fails to evaluate when
-the nixpkgs in `flake.lock` has a different one, and CI runs on `master` and every
+the Hyprland in `flake.lock` reports a different one, and CI runs on `master` and every
 `hyprland-*` branch. Distribution users build the branch for their installed
 Hyprland; the [Omarchy update hook](omarchy.md#updates) picks it automatically.
 
@@ -226,10 +226,9 @@ Nix users can pin a tag with `github:nyrda/hyprtrizone/v0.57.0-1`.
 
 1. Branch the current state: `git branch hyprland-<current version> master`,
    unless that branch already points there.
-2. On `master`, point the `nixpkgs` input in `flake.nix` at a nixpkgs
-   revision whose `hyprland` is the new release
-   (`github:NixOS/nixpkgs/<commit>`), run `nix flake lock`, and write the new
-   version to `HYPRLAND_VERSION`.
+2. On `master`, point the `hyprland` input in `flake.nix` at the release tag
+   (`github:hyprwm/Hyprland/v<new version>`), run `nix flake lock`, and write
+   the new version to `HYPRLAND_VERSION`.
 3. Port the plugin. A matching checkout at `HYPRLAND_ROOT` helps with API
    reference. `make IGNORE_HYPRLAND_VERSION=1` builds against other headers
    while porting.
@@ -242,9 +241,10 @@ Nix users can pin a tag with `github:nyrda/hyprtrizone/v0.57.0-1`.
 A release that needs no code changes, typically a patch release, still gets its
 own branch with its own pin and version file, so its tests run against it.
 
-Until nixpkgs has a release that needs this port, the Nix builds and tests use
-Hyprland's own flake at a `main` commit, built with its pinned nixpkgs and
-compiler (`nix/pkgs.nix`). Pick a commit Hyprland's CI has published to
+The Nix builds and tests use Hyprland's own flake, built with its pinned
+nixpkgs and compiler (`nix/pkgs.nix`): at the release tag on `master` and the
+`hyprland-*` branches, at a `main` commit on the branch that ports the next
+release ahead of its tag. Pin only commits Hyprland's CI has published to
 hyprland.cachix.org. CI never compiles Hyprland: its first step fetches it
 with local builds disabled and fails when the cache does not have it.
 
