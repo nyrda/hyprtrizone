@@ -1,6 +1,6 @@
 {
   system ? "x86_64-linux",
-  # The nixpkgs locked in flake.lock.
+  # Hyprland's package set at the commit locked in flake.lock.
   pkgs ? import ./pkgs.nix { inherit system; },
 }:
 
