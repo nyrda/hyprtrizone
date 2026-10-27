@@ -5,7 +5,7 @@
   # prebuilt on hyprland.cachix.org either way. Everything else, including nixpkgs for the test VMs, comes from its
   # package set (nix/pkgs.nix). Do not make it follow another nixpkgs: that changes the derivation, and nothing has
   # it prebuilt.
-  inputs.hyprland.url = "github:hyprwm/Hyprland/b957624c9f2f8f61b14655d743c9e1f5f024007e";
+  inputs.hyprland.url = "github:hyprwm/Hyprland/b3fd5b49884693b1489c9c11f04517c0a2d0b70f";
 
   outputs =
     { self, hyprland }:
