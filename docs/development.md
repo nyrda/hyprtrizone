@@ -14,7 +14,10 @@ described under [manual build](installation.md#manual-build).
 | `./dev.sh vm-demo-screenshot` | Test the demo session and update `docs/demo.png`. |
 | `./dev.sh vm-demo-video` | Record the feature tour and update `docs/demo.mp4` and `docs/demo-video.png`. |
 
-The VM commands need Nix and KVM, and pass extra arguments to `nix-build`. Only
+The VM commands need Nix and KVM, and pass extra arguments to `nix-build`.
+`dev.sh` enables `nix-command` and `flakes` for its Nix invocations, so no global
+experimental-feature setting is needed. Direct `nix-build` or `nix-shell` calls
+using `nix/pkgs.nix` need `--extra-experimental-features flakes`. Only
 `vm-demo` opens a window; the tests and recordings run unattended. Only
 `reload` touches your desktop session.
 

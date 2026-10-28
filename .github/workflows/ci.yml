@@ -38,3 +38,5 @@ jobs:
         run: |
           nix eval --raw .#checks.x86_64-linux.vm-test.drvPath
           nix eval --raw .#checks.x86_64-linux.demo.drvPath
+      - name: Evaluate legacy VM entry point without global flakes
+        run: NIX_CONFIG='experimental-features =' ./dev.sh vm-test --dry-run
