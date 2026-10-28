@@ -1,18 +1,19 @@
 # Omarchy
 
-Omarchy 4 runs Hyprland 0.56.2 with a Lua configuration, the same compositor
-this plugin targets. It already ships the Hyprland headers, Lua 5.5, and
-`base-devel`, so the plugin builds without extra packages. Omarchy itself loads
-no Hyprland plugins, and its Quickshell shell does not depend on the layout.
+This branch targets Hyprland 0.57.0 with a Lua configuration. On Omarchy 4,
+use the branch that matches your installed Hyprland. Omarchy ships the Hyprland
+headers, Lua 5.5, and `base-devel`, so the plugin builds without extra packages.
+Its Quickshell shell does not depend on the layout.
 
-This setup was tested on Omarchy 4.0.4 in a VM.
+The installation procedure was tested on Omarchy 4.0.4 with Hyprland 0.56.2
+in a VM. That test used the `hyprland-0.56.2` branch.
 
 ## Requirements
 
 Check the compositor version first:
 
 ```sh
-pacman -Q hyprland   # hyprland 0.56.2-…
+pacman -Q hyprland   # for example: hyprland 0.57.0-…
 ```
 
 The plugin only loads into the Hyprland build whose headers it was compiled
@@ -129,7 +130,7 @@ To use it anyway, install its build tools and add the plugin:
 ```sh
 sudo pacman -S --needed cmake meson
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.56.2
+hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.57.0
 hyprpm enable hyprtrizone
 ```
 

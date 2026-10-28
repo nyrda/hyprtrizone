@@ -173,7 +173,7 @@ Each branch targets one Hyprland release, named in `HYPRLAND_VERSION`:
 | Branch | Targets |
 | --- | --- |
 | `master` | The newest release the plugin is ported to |
-| `hyprland-<version>` | That release, for example `hyprland-0.56.2` |
+| `hyprland-<version>` | That release, for example `hyprland-0.57.0` |
 
 Every supported release has its own branch; the newest one points at the same
 commit as `master` until `master` moves on. The Makefile stops when
@@ -197,7 +197,7 @@ The branch of the newest release fast-forwards instead, as long as `master`
 has not moved on to another release:
 
 ```sh
-git switch hyprland-0.56.2
+git switch hyprland-0.57.0
 git merge --ff-only master
 ```
 

@@ -40,15 +40,14 @@ between left and right, and keep a readable height instead of shrinking.
 
 ## Compatibility
 
-- hyprtrizone is built and tested against **Hyprland 0.56.2** and supports
+- hyprtrizone is built and tested against **Hyprland 0.57.0** and supports
   only Hyprland's Lua configuration, not a classic `hyprland.conf`.
 - A Hyprland plugin only loads into the exact Hyprland build it was compiled
   against, so it has to be rebuilt after every Hyprland update. The NixOS
   module and the Omarchy update hook do that for you.
 - `master` follows the newest supported release. The branches
-  `hyprland-0.56.1` and `hyprland-0.56.2` track those releases, and older
-  releases are not supported. `port-hyprland-main` is an experimental port to
-  Hyprland's `main` branch.
+  `hyprland-0.56.1`, `hyprland-0.56.2`, and `hyprland-0.57.0` track those
+  releases. Build the branch that matches your installed Hyprland.
 - See the [known limitations](docs/behavior.md#known-limitations).
 
 ## Install
@@ -79,7 +78,7 @@ matches `hyprctl version`:
 
 ```sh
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.56.2
+hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.57.0
 hyprpm enable hyprtrizone
 ```
 
@@ -92,7 +91,7 @@ covers the steps and the changed keybindings.
 
 **Manual build.** `make` builds `hyprtrizoneLayout.so`; load it with
 `hl.plugin.load("/absolute/path/to/hyprtrizoneLayout.so")`. It needs a C++23
-compiler, pkg-config, and the development files of Hyprland 0.56.2, libei, and
+compiler, pkg-config, and the development files of Hyprland 0.57.0, libei, and
 Lua 5.5. See [manual build](docs/installation.md#manual-build).
 
 ## Configure
