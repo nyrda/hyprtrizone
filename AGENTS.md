@@ -20,10 +20,12 @@ opens the test driver. `vm-demo-video` records the 30:9 feature tour into
 `docs/demo.mp4`; rerun it when a change affects what the tour shows. The README plays a GitHub
 attachment copy of the video; the user re-uploads it after a new recording.
 
-Each branch targets the Hyprland release in `HYPRLAND_VERSION`: `master` the newest,
-`hyprland-<version>` one release each. Commit fixes on `master` and cherry-pick them onto
-maintained release branches; never merge `master` into them. Release tags are
-`v<Hyprland version>-<n>` and never reuse a branch name. See "Hyprland versions and
+Each branch targets one Hyprland minor release, and `HYPRLAND_VERSION` names the exact patch
+release its Nix build and VM tests pin: `master` the newest, `hyprland-<X.Y>` an older minor
+release each. Old branches are kept, and patch releases get no branch. Commit fixes on `master`
+and cherry-pick them with `-x` onto the old branches listed in "Older Hyprland releases" of
+`docs/installation.md`. Never merge `master` into them. Tags are `v<patch version>-<n>` and
+never reuse a branch name. See "Hyprland versions and
 branches" in `docs/development.md`.
 
 `HYPRLAND_ROOT` defaults to `../Hyprland`. Use a matching checkout for API
