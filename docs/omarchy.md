@@ -6,7 +6,8 @@ headers, Lua 5.5, and `base-devel`, so the plugin builds without extra packages.
 Its Quickshell shell does not depend on the layout.
 
 The installation procedure was tested on Omarchy 4.0.4 with Hyprland 0.56.2
-in a VM. That test used the `hyprland-0.56.2` branch.
+in a VM. That test used the `hyprland-0.56.2` branch, which `hyprland-0.56` now
+supersedes.
 
 ## Requirements
 
@@ -19,9 +20,11 @@ pacman -Q hyprland   # for example: hyprland 0.57.0-…
 The plugin only loads into the Hyprland build whose headers it was compiled
 against. A build for another version refuses to load and shows a notification.
 
-Each Hyprland release has its own branch, `hyprland-<version>`. Build the one
-that matches `pacman -Q hyprland`. If there is none yet, that release is not
-supported yet.
+`master` targets the newest supported Hyprland release, and each older minor
+release has a `hyprland-<X.Y>` branch, listed in
+[Older Hyprland releases](installation.md#older-hyprland-releases). Build the
+one for the minor release `pacman -Q hyprland` shows. If there is none, that
+release is not supported yet.
 
 ## Try it without changing the configuration
 
@@ -30,7 +33,8 @@ Build the plugin, load it into the running session, and switch the layout:
 ```sh
 git clone https://github.com/nyrda/hyprtrizone.git ~/.local/src/hyprtrizone
 cd ~/.local/src/hyprtrizone
-git switch "hyprland-$(pacman -Q hyprland | awk '{ print $2 }' | cut -d- -f1)"
+# Only for an older Hyprland than master targets, for example 0.56:
+# git switch hyprland-0.56
 make
 hyprctl plugin load "$PWD/hyprtrizoneLayout.so"
 hyprctl eval 'hl.config({ general = { layout = "hyprtrizone" } })'
@@ -105,8 +109,9 @@ Omarchy shows notifications at the top right, over the top of the right column.
 ## Updates
 
 The [update hook](../examples/omarchy/hyprtrizone-update) runs after every
-`omarchy update`. It fetches `~/.local/src/hyprtrizone`, checks out the branch
-for the installed Hyprland, rebuilds, and installs the result. It does nothing
+`omarchy update`. It fetches `~/.local/src/hyprtrizone`, checks out `master`
+when it targets the installed Hyprland's minor release and `hyprland-<X.Y>`
+otherwise, rebuilds, and installs the result. It does nothing
 when neither the plugin source nor a Hyprland package changed. Log out and back
 in after it reports a new build.
 
@@ -130,13 +135,14 @@ To use it anyway, install its build tools and add the plugin:
 ```sh
 sudo pacman -S --needed cmake meson
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.57.0
+hyprpm add https://github.com/nyrda/hyprtrizone origin/master
 hyprpm enable hyprtrizone
 ```
 
-Use the branch for your Hyprland release, with the `origin/` prefix. When an
-update changes the release, remove the repository with `hyprpm remove
-hyprtrizone` and add the new branch.
+`origin/master` is for the Hyprland release `master` targets. For an older
+minor release, use its branch, for example `origin/hyprland-0.56`. When an
+update changes the minor release, or `master` moves on past yours, remove the
+repository with `hyprpm remove hyprtrizone` and add the branch for your release.
 
 Remove the `hl.plugin.load` line from `hyprtrizone.lua`, and add a start hook
 that loads the plugin and then reloads the configuration:

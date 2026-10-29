@@ -171,83 +171,94 @@ and the global scrolling toggles.
 
 ## Hyprland versions and branches
 
-Each branch targets one Hyprland release, named in `HYPRLAND_VERSION`:
+Each branch targets one Hyprland minor release. `HYPRLAND_VERSION` names the
+exact patch release its Nix build and VM tests pin:
 
 | Branch | Targets |
 | --- | --- |
 | `master` | The newest release the plugin is ported to |
-| `hyprland-<version>` | That release, for example `hyprland-0.57.0` |
+| `hyprland-<X.Y>` | An older minor release, for example `hyprland-0.56` for Hyprland 0.56 |
 
-Every supported release has its own branch; the newest one points at the same
-commit as `master` until `master` moves on. The Makefile stops when
-`pkg-config` finds a different Hyprland, the Nix test fails to evaluate when
-the Hyprland in `flake.lock` reports a different one, and CI runs on `master` and every
-`hyprland-*` branch. Distribution users build the branch for their installed
-Hyprland; the [Omarchy update hook](omarchy.md#updates) picks it automatically.
+When `master` is ported to the next minor release, `hyprland-<X.Y>` is created
+at `master`'s last state for the previous one. Old branches are kept, and
+[Older Hyprland releases](installation.md#older-hyprland-releases) lists the
+ones that still get fixes. Patch releases get no branch of their own. `master`
+moves to a new patch release through a pull request that re-pins it, and an
+old branch moves to the newest patch release of its minor when its fixes are
+backported.
+
+The Makefile stops when `pkg-config` finds another minor release than the one
+in `HYPRLAND_VERSION`, and names the branch to build instead. The Nix test fails
+to evaluate when the Hyprland in `flake.lock` reports another version than
+`HYPRLAND_VERSION`. CI runs on `master` and every `hyprland-*` branch.
+Distribution users build the branch for their installed Hyprland, and the
+[Omarchy update hook](omarchy.md#updates) picks it automatically.
+
+The per-release branches from before this scheme (`hyprland-0.56.1`,
+`hyprland-0.56.2` and `hyprland-0.57.0`) are superseded by `hyprland-0.56` and
+`master`. They stay for existing references and get no updates.
 
 ### Fixes
 
-Commit fixes on `master`, then cherry-pick them onto the release branches that
-still get updates:
+Commit fixes on `master`, then cherry-pick them onto the old branches that still
+get updates, with `-x` so each port names its commit on `master`:
 
 ```sh
-git switch hyprland-0.56.1
-git cherry-pick <commit>
+git switch hyprland-0.56
+git cherry-pick -x <commit>
 ./dev.sh vm-test
 ```
 
-The branch of the newest release fast-forwards instead, as long as `master`
-has not moved on to another release:
-
-```sh
-git switch hyprland-0.57.0
-git merge --ff-only master
-```
-
-Never merge `master` into a release branch otherwise. Once `master` is ported to a newer
-Hyprland, the merge brings that port along and the branch no longer builds.
-Keep a release branch updated while the distributions you care about still
-ship its release. Omarchy's stable channel runs about a month behind Arch.
+A port keeps the branch's own `flake.nix` inputs, `flake.lock` and
+`HYPRLAND_VERSION`. When a change needs an API the older Hyprland lacks, port it
+to that API or leave it out. Never merge `master` into an old branch. The merge
+brings the port to the newer Hyprland along, and the branch no longer builds.
+Omarchy's stable channel runs about a month behind Arch, so a branch stays
+useful for a while after `master` moves on.
 
 ### Tags
 
-A tag marks a tested state of a release branch: `v<Hyprland version>-<n>`, for
-example `v0.57.0-1`, where `n` counts the plugin's own releases for that
-Hyprland release. Tag a release branch after fixes that users should pick up,
-with the next `n`:
+A tag marks a tested state of a branch: `v<Hyprland version>-<n>`, for example
+`v0.57.0-1`, where the version is the exact patch release in `HYPRLAND_VERSION`
+and `n` counts the plugin's own releases for it. Tag a branch after changes to
+the plugin that users should pick up, with the next `n`:
 
 ```sh
-git tag -a v0.57.0-2 hyprland-0.57.0 -m "hyprtrizone for Hyprland 0.57.0, revision 2"
-git push origin v0.57.0-2
+git tag -a v0.56.2-2 hyprland-0.56 -m "hyprtrizone for Hyprland 0.56.2, revision 2"
+git push origin v0.56.2-2
 ```
 
-Tags never use the branch names: a tag `hyprland-0.57.0` next to the branch of
-the same name makes the plain name ambiguous for Git and Nix flake references.
+Tags never use branch names: a tag `hyprland-0.56` next to the branch of the
+same name makes the plain name ambiguous for Git and Nix flake references.
 Nix users can pin a tag with `github:nyrda/hyprtrizone/v0.57.0-1`.
 
 ### Porting to a new release
 
-1. Branch the current state: `git branch hyprland-<current version> master`,
-   unless that branch already points there.
-2. On `master`, point the `hyprland` input in `flake.nix` at the release tag
-   (`github:hyprwm/Hyprland/v<new version>`), run `nix flake lock`, and write
-   the new version to `HYPRLAND_VERSION`.
-3. Port the plugin. A matching checkout at `HYPRLAND_ROOT` helps with API
+1. On a branch from `master`, point the `hyprland` input in `flake.nix` at the
+   release tag (`github:hyprwm/Hyprland/v<new version>`), run `nix flake lock`,
+   and write the new version to `HYPRLAND_VERSION`.
+2. Port the plugin. A matching checkout at `HYPRLAND_ROOT` helps with API
    reference. `make IGNORE_HYPRLAND_VERSION=1` builds against other headers
    while porting.
-4. Run the package build and both VM tests, then regenerate the screenshot and
+3. Run the package build and both VM tests, then regenerate the screenshot and
    video, and replace the video attachment in the README.
-5. Update the version in the documentation.
-6. Create `hyprland-<new version>` at the new `master`, and tag that commit
+4. Update the version in the documentation. In
+   [Older Hyprland releases](installation.md#older-hyprland-releases), `master`
+   gets the new version and a row for the previous minor release's branch is
+   added. Keep the rows of the older branches.
+5. Once the port is merged, create `hyprland-<previous X.Y>` at the commit
+   before the merge, unless it exists, and tag the merge commit
    `v<new version>-1`.
 
-A release that needs no code changes, typically a patch release, still gets its
-own branch with its own pin and version file, so its tests run against it.
+A patch release of the minor release `master` targets goes through the same
+steps without a new branch: re-pin `master` in a pull request, then tag the
+merge commit `v<patch version>-1`.
 
-The Nix builds and tests use Hyprland's own flake, built with its pinned
-nixpkgs and compiler (`nix/pkgs.nix`): at the release tag on `master` and the
-`hyprland-*` branches, at a `main` commit on the branch that ports the next
-release ahead of its tag. Pin only commits Hyprland's CI has published to
+From Hyprland 0.57 on, the Nix builds and tests use Hyprland's own flake,
+built with its pinned nixpkgs and compiler (`nix/pkgs.nix`): at the release tag
+on `master` and the branches of 0.57 and later, at a `main` commit on the branch
+that ports the next release ahead of its tag. `hyprland-0.56` pins a nixpkgs
+revision that ships its release. Pin only commits Hyprland's CI has published to
 hyprland.cachix.org. CI never compiles Hyprland: its first step fetches it
 with local builds disabled and fails when the cache does not have it.
 
