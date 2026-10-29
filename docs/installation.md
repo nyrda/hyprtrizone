@@ -21,7 +21,7 @@ build the branch for the Hyprland you have installed.
 
 The flake provides the plugin, the matching Hyprland and portal packages, and a
 NixOS module for `x86_64-linux`. Hyprland and its portal come from Hyprland's
-own flake at the `v0.57.0` release tag, locked to a commit in `flake.lock`.
+own flake at a `main` commit after 0.57.0, locked in `flake.lock`.
 
 ```nix
 # flake.nix
