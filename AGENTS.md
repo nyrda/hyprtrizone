@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This is hyprtrizone, a personal Hyprland layout plugin targeting Hyprland 0.56.2.
+This is hyprtrizone, a personal Hyprland layout plugin targeting Hyprland 0.57.0.
 
 ## Build and validate
 
@@ -28,8 +28,8 @@ branches" in `docs/development.md`.
 
 `HYPRLAND_ROOT` defaults to `../Hyprland`. Use a matching checkout for API
 reference. The helper uses its Nix shell only if `hyprland.dev` is already built;
-otherwise it falls back to the nixpkgs revision pinned in `flake.lock` (`nix/pkgs.nix`).
-Nix builds use that nixpkgs' Hyprland, prebuilt on cache.nixos.org. Never compile Hyprland in CI.
+otherwise it falls back to the Hyprland flake commit pinned in `flake.lock` (`nix/pkgs.nix`).
+Nix builds use that commit's Hyprland, prebuilt on hyprland.cachix.org. Never compile Hyprland in CI.
 CI does not run the VM tests: GitHub's runners are too small for them. Run them locally.
 
 ## Files

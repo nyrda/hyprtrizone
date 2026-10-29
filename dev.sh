@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HYPRLAND_ROOT="${HYPRLAND_ROOT:-${ROOT_DIR}/../Hyprland}"
+# The legacy entry points load Hyprland with builtins.getFlake too.
+NIX_FLAGS=(--extra-experimental-features "nix-command flakes")
 
 usage() {
     cat <<'EOF'
@@ -45,8 +47,8 @@ nix_pkg_config_path() {
     [[ -f "${HYPRLAND_ROOT}/flake.nix" ]] || return 1
 
     local system hyprland_dev
-    system="$(nix eval --impure --raw --expr builtins.currentSystem)"
-    hyprland_dev="$(nix eval --raw "${HYPRLAND_ROOT}#packages.${system}.hyprland.dev.outPath")" || return 1
+    system="$(nix "${NIX_FLAGS[@]}" eval --impure --raw --expr builtins.currentSystem)"
+    hyprland_dev="$(nix "${NIX_FLAGS[@]}" eval --raw "${HYPRLAND_ROOT}#packages.${system}.hyprland.dev.outPath")" || return 1
     # Evaluating outPath does not build it; after a Hyprland bump the dev output may not exist yet.
     if [[ ! -e "${hyprland_dev}/share/pkgconfig/hyprland.pc" ]]; then
         log "Hyprland flake dev output is not built (to use it: nix build --no-link ${HYPRLAND_ROOT}#hyprland.dev)"
@@ -68,9 +70,9 @@ run_make() {
     [[ -e "${ROOT_DIR}/.pre-commit-config.yaml" ]] && had_precommit=1
     [[ -e "${ROOT_DIR}/.git/hooks/pre-commit" ]] && had_precommit_hook=1
     if ! pc_path="$(nix_pkg_config_path)"; then
-        # Fall back to the nixpkgs package set pinned in flake.lock (nix/pkgs.nix).
+        # Fall back to Hyprland's package set at the commit pinned in flake.lock (nix/pkgs.nix).
         log "make $* inside the pinned Hyprland's build shell (nix/hyprtrizone-vm-test.nix)"
-        nix-shell "${ROOT_DIR}/nix/hyprtrizone-vm-test.nix" -A plugin --run "make $(printf '%q ' "$@")"
+        nix-shell "${NIX_FLAGS[@]}" "${ROOT_DIR}/nix/hyprtrizone-vm-test.nix" -A plugin --run "make $(printf '%q ' "$@")"
         return
     fi
 
@@ -78,7 +80,7 @@ run_make() {
 
     local status=0
     set +e
-    nix develop "$HYPRLAND_ROOT" -c bash -lc '
+    nix "${NIX_FLAGS[@]}" develop "$HYPRLAND_ROOT" -c bash -lc '
         root_dir="$1"
         pc_path="$2"
         shift 2
@@ -114,20 +116,20 @@ reload_plugin() {
 vm_test() {
     command -v nix-build >/dev/null 2>&1 || die "nix-build is required for the VM test"
     cd "$ROOT_DIR"
-    nix-build nix/hyprtrizone-vm-test.nix "$@"
+    nix-build "${NIX_FLAGS[@]}" nix/hyprtrizone-vm-test.nix "$@"
 }
 
 vm_test_interactive() {
     command -v nix-build >/dev/null 2>&1 || die "nix-build is required for the VM test"
     cd "$ROOT_DIR"
-    nix-build nix/hyprtrizone-vm-test.nix -A driverInteractive "$@"
+    nix-build "${NIX_FLAGS[@]}" nix/hyprtrizone-vm-test.nix -A driverInteractive "$@"
     exec ./result/bin/nixos-test-driver
 }
 
 vm_demo() {
     command -v nix-build >/dev/null 2>&1 || die "nix-build is required for the VM demo"
     cd "$ROOT_DIR"
-    nix-build nix/hyprtrizone-vm-demo.nix -A vm -o result-vm-demo "$@"
+    nix-build "${NIX_FLAGS[@]}" nix/hyprtrizone-vm-demo.nix -A vm -o result-vm-demo "$@"
     log "starting the demo VM (SUPER+M exits Hyprland; its disk image is discarded afterwards)"
     local tmp
     tmp="$(mktemp -d)"
@@ -138,7 +140,7 @@ vm_demo() {
 vm_demo_screenshot() {
     command -v nix-build >/dev/null 2>&1 || die "nix-build is required for the VM demo"
     cd "$ROOT_DIR"
-    nix-build nix/hyprtrizone-vm-demo.nix -A screenshot -o result-vm-demo-screenshot "$@"
+    nix-build "${NIX_FLAGS[@]}" nix/hyprtrizone-vm-demo.nix -A screenshot -o result-vm-demo-screenshot "$@"
     install -m644 result-vm-demo-screenshot/hyprtrizone-demo.png docs/demo.png
     log "wrote docs/demo.png"
 }
@@ -147,7 +149,7 @@ vm_demo_video() {
     command -v nix-build >/dev/null 2>&1 || die "nix-build is required for the VM demo"
     cd "$ROOT_DIR"
     # Nix reuses the previous recording until one of its inputs changes.
-    nix-build nix/hyprtrizone-vm-demo.nix -A video -o result-vm-demo-video "$@"
+    nix-build "${NIX_FLAGS[@]}" nix/hyprtrizone-vm-demo.nix -A video -o result-vm-demo-video "$@"
     install -m644 result-vm-demo-video/hyprtrizone-demo.mp4 docs/demo.mp4
     install -m644 result-vm-demo-video/hyprtrizone-demo-poster.png docs/demo-video.png
     log "wrote docs/demo.mp4 and docs/demo-video.png"

@@ -163,7 +163,7 @@ retry(lambda _: len(panels()) == 2)
 assert not hyprctl("configerrors").strip(), hyprctl("configerrors")
 park()
 
-tour("card", "hyprtrizone", "A three-zone Hyprland layout for ultrawide monitors", f"Hyprland 0.56.2  ·  {WIDTH}×{HEIGHT}  ·  recorded in a NixOS VM")
+tour("card", "hyprtrizone", "A three-zone Hyprland layout for ultrawide monitors", f"Hyprland 0.57.0  ·  {WIDTH}×{HEIGHT}  ·  recorded in a NixOS VM")
 time.sleep(1.2)
 
 # Started by Hyprland, so it outlives the su session. A near-lossless intermediate; the host encodes the result.

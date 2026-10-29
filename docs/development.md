@@ -14,7 +14,10 @@ described under [manual build](installation.md#manual-build).
 | `./dev.sh vm-demo-screenshot` | Test the demo session and update `docs/demo.png`. |
 | `./dev.sh vm-demo-video` | Record the feature tour and update `docs/demo.mp4` and `docs/demo-video.png`. |
 
-The VM commands need Nix and KVM, and pass extra arguments to `nix-build`. Only
+The VM commands need Nix and KVM, and pass extra arguments to `nix-build`.
+`dev.sh` enables `nix-command` and `flakes` for its Nix invocations, so no global
+experimental-feature setting is needed. Direct `nix-build` or `nix-shell` calls
+using `nix/pkgs.nix` need `--extra-experimental-features flakes`. Only
 `vm-demo` opens a window; the tests and recordings run unattended. Only
 `reload` touches your desktop session.
 
@@ -173,12 +176,12 @@ Each branch targets one Hyprland release, named in `HYPRLAND_VERSION`:
 | Branch | Targets |
 | --- | --- |
 | `master` | The newest release the plugin is ported to |
-| `hyprland-<version>` | That release, for example `hyprland-0.56.2` |
+| `hyprland-<version>` | That release, for example `hyprland-0.57.0` |
 
 Every supported release has its own branch; the newest one points at the same
 commit as `master` until `master` moves on. The Makefile stops when
 `pkg-config` finds a different Hyprland, the Nix test fails to evaluate when
-the nixpkgs in `flake.lock` has a different one, and CI runs on `master` and every
+the Hyprland in `flake.lock` reports a different one, and CI runs on `master` and every
 `hyprland-*` branch. Distribution users build the branch for their installed
 Hyprland; the [Omarchy update hook](omarchy.md#updates) picks it automatically.
 
@@ -197,7 +200,7 @@ The branch of the newest release fast-forwards instead, as long as `master`
 has not moved on to another release:
 
 ```sh
-git switch hyprland-0.56.2
+git switch hyprland-0.57.0
 git merge --ff-only master
 ```
 
@@ -226,10 +229,9 @@ Nix users can pin a tag with `github:nyrda/hyprtrizone/v0.57.0-1`.
 
 1. Branch the current state: `git branch hyprland-<current version> master`,
    unless that branch already points there.
-2. On `master`, point the `nixpkgs` input in `flake.nix` at a nixpkgs
-   revision whose `hyprland` is the new release
-   (`github:NixOS/nixpkgs/<commit>`), run `nix flake lock`, and write the new
-   version to `HYPRLAND_VERSION`.
+2. On `master`, point the `hyprland` input in `flake.nix` at the release tag
+   (`github:hyprwm/Hyprland/v<new version>`), run `nix flake lock`, and write
+   the new version to `HYPRLAND_VERSION`.
 3. Port the plugin. A matching checkout at `HYPRLAND_ROOT` helps with API
    reference. `make IGNORE_HYPRLAND_VERSION=1` builds against other headers
    while porting.
@@ -242,11 +244,12 @@ Nix users can pin a tag with `github:nyrda/hyprtrizone/v0.57.0-1`.
 A release that needs no code changes, typically a patch release, still gets its
 own branch with its own pin and version file, so its tests run against it.
 
-The Nix builds and tests use the Hyprland package from the pinned nixpkgs
-(`nix/pkgs.nix`), which cache.nixos.org serves prebuilt. Pick a revision
-Hydra has built, for example the head of `nixos-unstable`. CI never compiles
-Hyprland: its first step fetches it with local builds disabled and fails when
-the cache does not have it.
+The Nix builds and tests use Hyprland's own flake, built with its pinned
+nixpkgs and compiler (`nix/pkgs.nix`): at the release tag on `master` and the
+`hyprland-*` branches, at a `main` commit on the branch that ports the next
+release ahead of its tag. Pin only commits Hyprland's CI has published to
+hyprland.cachix.org. CI never compiles Hyprland: its first step fetches it
+with local builds disabled and fails when the cache does not have it.
 
 Keep behavior changes out of dependency ports. `setPositionGlobal` already
 applies Hyprland's gaps, and pairing must stay local to the insertion point.
