@@ -4,16 +4,17 @@ Hyprtrizone targets **Hyprland 0.57.0** with a Lua configuration. A Hyprland
 plugin only loads into the exact compositor build it was compiled against, so
 rebuild the plugin whenever Hyprland changes.
 
-`master` targets the newest supported Hyprland release. Every supported release
-also has a `hyprland-<version>` branch, for example `hyprland-0.57.0`. On a
-distribution, build the branch for the Hyprland you have installed.
+`master` targets the newest supported Hyprland release. Older minor releases
+have a `hyprland-<X.Y>` branch, for example `hyprland-0.56` for Hyprland 0.56.2,
+see [Older Hyprland releases](#older-hyprland-releases). On a distribution,
+build the branch for the Hyprland you have installed.
 
 | Method | Use it when |
 | --- | --- |
 | [NixOS module](#nixos-module) | You run NixOS. The flake pins Hyprland and the plugin together. |
 | [Nix packages](#nix-packages-without-the-module) | You manage the Hyprland package yourself on Nix. |
 | [Manual build](#manual-build) | You want a local `.so`, for development or another distribution. |
-| [hyprpm](#hyprpm) | Your distribution provides Hyprland 0.57.0 and hyprpm. |
+| [hyprpm](#hyprpm) | Your distribution provides a supported Hyprland and hyprpm. |
 | [Omarchy](omarchy.md) | You run Omarchy 4. Covers the build, the configuration, and Omarchy's keybindings. |
 
 ## NixOS module
@@ -112,8 +113,9 @@ development files with their dependencies, and the libei and Lua 5.5
 development files, then run `make`. Set `LUA_PKG` if your distribution uses an
 unusual pkg-config name for Lua.
 
-The build stops when `pkg-config` finds a different Hyprland than the branch
-targets (`HYPRLAND_VERSION`). Switch to the matching `hyprland-<version>` branch.
+The build stops when `pkg-config` finds another minor release of Hyprland than
+the branch targets (the `X.Y` of `HYPRLAND_VERSION`), and names the
+`hyprland-<X.Y>` branch to build instead.
 `make IGNORE_HYPRLAND_VERSION=1` skips the check for porting.
 
 Load the result by absolute path:
@@ -139,9 +141,13 @@ Then, as your user inside a running Hyprland session:
 
 ```sh
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.57.0
+hyprpm add https://github.com/nyrda/hyprtrizone origin/master
 hyprpm enable hyprtrizone
 ```
+
+`origin/master` builds for Hyprland 0.57. For an older release, add the branch
+from [Older Hyprland releases](#older-hyprland-releases) instead, for example
+`origin/hyprland-0.56`.
 
 `hyprpm update` downloads the Hyprland sources that match the running
 compositor and installs their headers. It asks for your password through
@@ -158,9 +164,33 @@ end)
 
 Put plugin settings in the same `hyprctl eval` call, or set them from a
 separate file loaded after the plugin. Run `hyprpm update` after every Hyprland
-update. hyprpm needs the branch with its `origin/` prefix. After an update to
-another Hyprland release, remove the repository with
-`hyprpm remove hyprtrizone` and add the branch for the new release.
+update. hyprpm needs the branch with its `origin/` prefix. When you move to
+another minor release of Hyprland, or `master` moves on to a newer one than
+yours, remove the repository with `hyprpm remove hyprtrizone` and add the
+branch for your release.
+
+## Older Hyprland releases
+
+`master` targets the newest supported Hyprland release. When it moves on to the
+next minor release, the previous one keeps a `hyprland-<X.Y>` branch, which gets
+the fixes of `master` and the patch releases of its Hyprland.
+
+| Hyprland | Branch |
+| --- | --- |
+| v0.57.0 | `master` |
+| v0.56.2 | `hyprland-0.56` |
+
+Install from the branch that matches your Hyprland:
+
+- NixOS module and Nix packages: `inputs.hyprtrizone.url = "github:nyrda/hyprtrizone/hyprland-0.56";`
+- Manual build: `git clone -b hyprland-0.56 https://github.com/nyrda/hyprtrizone`,
+  or `git switch hyprland-0.56` in an existing clone, then `make`.
+- hyprpm: `hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.56`.
+- Omarchy: the [update hook](omarchy.md#updates) picks the branch.
+
+When you update Hyprland, move to the branch of the new release, or to `master`.
+The earlier per-release branches `hyprland-0.56.1`, `hyprland-0.56.2` and
+`hyprland-0.57.0` are superseded by this table and get no updates.
 
 ## Troubleshooting
 

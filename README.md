@@ -45,9 +45,10 @@ between left and right, and keep a readable height instead of shrinking.
 - A Hyprland plugin only loads into the exact Hyprland build it was compiled
   against, so it has to be rebuilt after every Hyprland update. The NixOS
   module and the Omarchy update hook do that for you.
-- `master` follows the newest supported release. The branches
-  `hyprland-0.56.1`, `hyprland-0.56.2`, and `hyprland-0.57.0` track those
-  releases. Build the branch that matches your installed Hyprland.
+- `master` follows the newest supported release. Older minor releases have a
+  `hyprland-<X.Y>` branch, for example `hyprland-0.56`, listed in
+  [Older Hyprland releases](docs/installation.md#older-hyprland-releases).
+  Build the branch that matches your installed Hyprland.
 - See the [known limitations](docs/behavior.md#known-limitations).
 
 ## Install
@@ -73,12 +74,13 @@ inputs.hyprtrizone.url = "github:nyrda/hyprtrizone";
 Then load the plugin at the top of `hyprland.lua` with
 `dofile("/etc/xdg/hypr/hyprtrizone_plugin.lua")`.
 
-**Arch, CachyOS, and other distributions with hyprpm.** Use the branch that
-matches `hyprctl version`:
+**Arch, CachyOS, and other distributions with hyprpm.** Use `origin/master`
+for Hyprland 0.57, or `origin/hyprland-<X.Y>` for an older release that
+`hyprctl version` shows:
 
 ```sh
 hyprpm update
-hyprpm add https://github.com/nyrda/hyprtrizone origin/hyprland-0.57.0
+hyprpm add https://github.com/nyrda/hyprtrizone origin/master
 hyprpm enable hyprtrizone
 ```
 

@@ -22,13 +22,16 @@ VERSION=${VERSION#*:}
 VERSION=${VERSION%-*}
 [[ -n $VERSION ]] || { report "Hyprland is not installed" critical; exit 0; }
 
+MINOR=$(cut -d. -f1,2 <<<"$VERSION")
+
 git -C "$SRC" fetch --quiet origin || { report "Could not fetch updates into $SRC" critical; exit 0; }
 
-# master targets the newest supported release; every release also has its own branch.
-if git -C "$SRC" rev-parse --quiet --verify "origin/hyprland-$VERSION" >/dev/null; then
-  REF=origin/hyprland-$VERSION
-elif [[ $(git -C "$SRC" show origin/master:HYPRLAND_VERSION 2>/dev/null) == "$VERSION" ]]; then
+# master targets the newest supported minor release, and each older one has a hyprland-<X.Y> branch.
+# Any patch release of a branch's minor release builds.
+if [[ $(git -C "$SRC" show origin/master:HYPRLAND_VERSION 2>/dev/null | cut -d. -f1,2) == "$MINOR" ]]; then
   REF=origin/master
+elif git -C "$SRC" rev-parse --quiet --verify "origin/hyprland-$MINOR" >/dev/null; then
+  REF=origin/hyprland-$MINOR
 else
   report "No branch supports Hyprland $VERSION yet. The layout stays off until one does." critical
   exit 0
