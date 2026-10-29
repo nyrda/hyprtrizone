@@ -6,7 +6,7 @@ A Hyprland window layout plugin for ultrawide monitors with three independent
 stacks: the main window in the center, and vertically scrolling stacks on the
 left and right.
 
-https://github.com/user-attachments/assets/9628c5b4-0ba5-4364-8d96-cf6a1bbaf8cb
+https://github.com/user-attachments/assets/31f98170-283f-484d-a863-3b48566fd11b
 
 Unlike Hyprland's centered master layout (`master` with `orientation = "center"`),
 each side is a stack of its own: windows stay on their side instead of jumping
