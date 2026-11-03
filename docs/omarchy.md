@@ -1,6 +1,6 @@
 # Omarchy
 
-This branch targets Hyprland 0.57.0 with a Lua configuration. On Omarchy 4,
+This branch targets Hyprland 0.57.1 with a Lua configuration. On Omarchy 4,
 use the branch that matches your installed Hyprland. Omarchy ships the Hyprland
 headers, Lua 5.5, and `base-devel`, so the plugin builds without extra packages.
 Its Quickshell shell does not depend on the layout.
@@ -14,7 +14,7 @@ supersedes.
 Check the compositor version first:
 
 ```sh
-pacman -Q hyprland   # for example: hyprland 0.57.0-…
+pacman -Q hyprland   # for example: hyprland 0.57.1-…
 ```
 
 The plugin only loads into the Hyprland build whose headers it was compiled
