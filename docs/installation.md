@@ -1,6 +1,6 @@
 # Installation
 
-Hyprtrizone targets **Hyprland 0.57.0** with a Lua configuration. A Hyprland
+Hyprtrizone targets **Hyprland 0.57.1** with a Lua configuration. A Hyprland
 plugin only loads into the exact compositor build it was compiled against, so
 rebuild the plugin whenever Hyprland changes.
 
@@ -21,7 +21,7 @@ build the branch for the Hyprland you have installed.
 
 The flake provides the plugin, the matching Hyprland and portal packages, and a
 NixOS module for `x86_64-linux`. Hyprland and its portal come from Hyprland's
-own flake at the `v0.57.0` release tag, locked to a commit in `flake.lock`.
+own flake at the `v0.57.1` release tag, locked to a commit in `flake.lock`.
 
 ```nix
 # flake.nix
@@ -92,7 +92,7 @@ in {
 To build the plugin against your own package set instead, use
 `pkgs.callPackage "${inputs.hyprtrizone}/nix/package.nix" { }` or the flake's
 `overlays.default`, which adds `pkgs.hyprtrizone`. Your Hyprland must then
-provide the same plugin API as 0.57.0.
+provide the same plugin API as 0.57.1.
 
 ## Manual build
 
@@ -108,7 +108,7 @@ build dependencies in this order:
    `../Hyprland`), if its `hyprland.dev` output is already built.
 3. Hyprland's package set at the commit pinned in `flake.lock`.
 
-Without Nix, install a C++23 compiler, Make, pkg-config, the Hyprland 0.57.0
+Without Nix, install a C++23 compiler, Make, pkg-config, the Hyprland 0.57.1
 development files with their dependencies, and the libei and Lua 5.5
 development files, then run `make`. Set `LUA_PKG` if your distribution uses an
 unusual pkg-config name for Lua.
@@ -177,7 +177,7 @@ the fixes of `master` and the patch releases of its Hyprland.
 
 | Hyprland | Branch |
 | --- | --- |
-| v0.57.0 | `master` |
+| v0.57.1 | `master` |
 | v0.56.2 | `hyprland-0.56` |
 
 Install from the branch that matches your Hyprland:
