@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This is hyprtrizone, a personal Hyprland layout plugin targeting Hyprland 0.57.1.
+This is hyprtrizone, a personal Hyprland layout plugin targeting Hyprland 0.57.2.
 
 ## Build and validate
 
