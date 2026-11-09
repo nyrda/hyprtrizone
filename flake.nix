@@ -1,10 +1,10 @@
 {
   description = "hyprtrizone: three-zone Hyprland layout with scrolling side stacks";
 
-  # Hyprland's own flake at v0.57.1, prebuilt on hyprland.cachix.org. Everything else,
+  # Hyprland's own flake at v0.57.2, prebuilt on hyprland.cachix.org. Everything else,
   # including nixpkgs for the test VMs, comes from its package set (nix/pkgs.nix).
   # Do not make it follow another nixpkgs: that changes the derivation, and nothing has it prebuilt.
-  inputs.hyprland.url = "github:hyprwm/Hyprland/v0.57.1";
+  inputs.hyprland.url = "github:hyprwm/Hyprland/v0.57.2";
 
   outputs =
     { self, hyprland }:

@@ -40,7 +40,7 @@ between left and right, and keep a readable height instead of shrinking.
 
 ## Compatibility
 
-- hyprtrizone is built and tested against **Hyprland 0.57.1** and supports
+- hyprtrizone is built and tested against **Hyprland 0.57.2** and supports
   only Hyprland's Lua configuration, not a classic `hyprland.conf`.
 - A Hyprland plugin only loads into the exact Hyprland build it was compiled
   against, so it has to be rebuilt after every Hyprland update. The NixOS
@@ -93,7 +93,7 @@ covers the steps and the changed keybindings.
 
 **Manual build.** `make` builds `hyprtrizoneLayout.so`; load it with
 `hl.plugin.load("/absolute/path/to/hyprtrizoneLayout.so")`. It needs a C++23
-compiler, pkg-config, and the development files of Hyprland 0.57.1, libei, and
+compiler, pkg-config, and the development files of Hyprland 0.57.2, libei, and
 Lua 5.5. See [manual build](docs/installation.md#manual-build).
 
 ## Configure
