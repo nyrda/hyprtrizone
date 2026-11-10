@@ -16,7 +16,6 @@
   glslang,
   hyprcursor,
   hyprgraphics,
-  hyprlang,
   hyprutils,
   libGL,
   libdrm,
@@ -65,7 +64,6 @@ stdenv.mkDerivation {
     glslang
     hyprcursor
     hyprgraphics
-    hyprlang
     hyprutils
     libGL
     libdrm
