@@ -140,7 +140,9 @@ takes its place, or the top window of the other side. Windows tagged for
 workspace following are not promoted.
 
 After a window closes, focus goes to its pair partner, then to the next window
-in its column, then to the previous one, and finally to any remaining window.
+in its column, then to the previous one. When its column is now empty, focus
+goes to the center, so the next new window opens on `side_bias` again. Without
+a center window, any remaining window gets focus.
 
 ## Workspaces
 

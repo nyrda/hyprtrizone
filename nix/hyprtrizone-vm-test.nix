@@ -75,6 +75,7 @@ let
     hl.window_rule({ name = "tz-right", match = { title = "^tz-right$" }, tag = "+tzright" })
     hl.window_rule({ name = "tz-pair", match = { title = "^tz-pair.*$" }, tag = "+tzpair" })
     hl.window_rule({ name = "tz-wheel", match = { title = "^tz-wheel.*$" }, tag = "+tzright" })
+    hl.window_rule({ name = "tz-close-left", match = { title = "^tz-close-left$" }, tag = "+tzleft" })
   '';
 
 in
@@ -494,6 +495,41 @@ in
     wait_for("ticks during the animation to accelerate", scrolled_by(4.5 * 131))
     hypr("eval " + shlex.quote("hl.config({ animations = { enabled = false } })"))
     dispatch_lua('hl.dsp.layout("scroll right up 100")')
+
+    # Closing the last window of a side stack focuses the center, also when the plugin's node list has a
+    # window of the other side first. New windows then open on side_bias again.
+    def active_title():
+        return json.loads(hypr("-j activewindow")).get("title")
+
+    def zone_of(title):
+        # Workspace 3 shares the monitor with tz-center's column.
+        x, center_x = client(title)["at"][0], client("tz-center")["at"][0]
+        return "center" if x == center_x else "left" if x < center_x else "right"
+
+    dispatch_lua('hl.dsp.focus({ workspace = "3" })')
+    wait_for("workspace 3 to be active", lambda: json.loads(hypr("-j activeworkspace"))["id"] == 3)
+    spawn("tz-close-old-center")
+    wait_for("tz-close-old-center to open", lambda: client("tz-close-old-center") is not None)
+    spawn("tz-close-left")
+    wait_for("tz-close-left to open", lambda: client("tz-close-left") is not None)
+    focus("tz-close-old-center")
+    spawn("tz-close-center")
+    wait_for("tz-close-center to open", lambda: client("tz-close-center") is not None)
+    # The center window closes and tz-close-center, the top right window, takes its place behind tz-close-left.
+    close("tz-close-old-center")
+    focus("tz-close-center")
+    wait_for("tz-close-center to take the center", lambda: zone_of("tz-close-center") == "center")
+    spawn("tz-close-right")
+    wait_for("tz-close-right to open on the right", lambda: client("tz-close-right") is not None and zone_of("tz-close-right") == "right")
+    focus("tz-close-right")
+    close("tz-close-right")
+    hold("focus to return to the center", lambda: active_title() == "tz-close-center")
+    spawn("tz-close-next")
+    wait_for("tz-close-next to open on side_bias", lambda: client("tz-close-next") is not None and zone_of("tz-close-next") == "right")
+    for title in ["tz-close-left", "tz-close-center", "tz-close-next"]:
+        close(title)
+    dispatch_lua('hl.dsp.focus({ workspace = "1" })')
+    wait_for("workspace 1 to be active", lambda: json.loads(hypr("-j activeworkspace"))["id"] == 1)
 
     dispatch_lua('hl.dsp.exec_cmd("foot -T tz-exec sh -c \'sleep 900\'", { workspace = "2 silent" })')
     wait_for("exec_cmd window to open on workspace 2", lambda: client("tz-exec") is not None and client("tz-exec")["workspace"]["id"] == 2)

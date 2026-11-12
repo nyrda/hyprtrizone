@@ -2113,7 +2113,15 @@ SP<Layout::ITarget> CHyprtrizoneAlgorithm::getNextCandidate(SP<Layout::ITarget> 
     if (auto t = m_lastRemovedPrevInZone.lock())
         return t;
 
-    // 4. Fallback: any remaining window
+    // 4. The center. m_nodes mixes the zones in no particular order, so the first node can be on the other
+    //    side; focusing it would send the next new window there instead of to side_bias.
+    for (auto& nd : m_nodes) {
+        auto t = nd.target.lock();
+        if (t && t != old && nd.zone == HYPRTRIZONE_ZONE_CENTER)
+            return t;
+    }
+
+    // 5. Fallback: any remaining window
     for (auto& nd : m_nodes) {
         auto t = nd.target.lock();
         if (t && t != old)
