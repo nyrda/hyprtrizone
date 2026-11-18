@@ -4,7 +4,7 @@
   # Hyprland's own flake at a main commit ahead of the next release, prebuilt on hyprland.cachix.org.
   # Everything else, including nixpkgs for the test VMs, comes from its package set (nix/pkgs.nix).
   # Do not make it follow another nixpkgs: that changes the derivation, and nothing has it prebuilt.
-  inputs.hyprland.url = "github:hyprwm/Hyprland/4d9a4720d24da84b540fdf8a6aa917abe564d0a2";
+  inputs.hyprland.url = "github:hyprwm/Hyprland/5177d94ed31742849d9654da1d9d50e5ad05e26d";
 
   outputs =
     { self, hyprland }:
