@@ -73,8 +73,6 @@ namespace HyprtrizoneConfig {
             return **reinterpret_cast<bool* const*>(reply.dataptr) ? 1 : 0;
         if (type == typeid(Config::INTEGER))
             return (int)**reinterpret_cast<Config::INTEGER* const*>(reply.dataptr);
-        if (type == typeid(Hyprlang::INT))
-            return (int)**reinterpret_cast<Hyprlang::INT* const*>(reply.dataptr);
 
         return fallback;
     }
@@ -87,8 +85,6 @@ namespace HyprtrizoneConfig {
         const std::type_index type{*reply.type};
         if (type == typeid(Config::FLOAT))
             return (float)**reinterpret_cast<Config::FLOAT* const*>(reply.dataptr);
-        if (type == typeid(Hyprlang::FLOAT))
-            return (float)**reinterpret_cast<Hyprlang::FLOAT* const*>(reply.dataptr);
         if (type == typeid(Config::INTEGER))
             return (float)**reinterpret_cast<Config::INTEGER* const*>(reply.dataptr);
 
@@ -104,10 +100,6 @@ namespace HyprtrizoneConfig {
         if (type == typeid(std::string)) {
             const auto ptr = *reinterpret_cast<const std::string* const*>(reply.dataptr);
             return ptr ? *ptr : fallback;
-        }
-        if (type == typeid(const char*)) {
-            const auto ptr = reinterpret_cast<Hyprlang::STRING const*>(reply.dataptr);
-            return ptr && *ptr ? std::string(*ptr) : fallback;
         }
 
         return fallback;

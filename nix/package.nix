@@ -13,10 +13,8 @@
   hyprland,
   aquamarine,
   cairo,
-  glslang,
   hyprcursor,
   hyprgraphics,
-  hyprlang,
   hyprutils,
   libGL,
   libdrm,
@@ -62,10 +60,8 @@ stdenv.mkDerivation {
     hyprland.dev
     aquamarine
     cairo
-    glslang
     hyprcursor
     hyprgraphics
-    hyprlang
     hyprutils
     libGL
     libdrm
